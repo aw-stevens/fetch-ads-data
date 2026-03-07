@@ -1,0 +1,17 @@
+{
+  "google_ads": {
+    "credentials": "~/.ad-analytics/google-ads.yaml",
+    "default_account": "",
+    "accounts": {}
+  },
+  "google_analytics": {
+    "credentials": "~/.config/gcloud/application_default_credentials.json",
+    "default_property": "",
+    "properties": {}
+  },
+  "linkedin_ads": {
+    "credentials": "~/.ad-analytics/linkedin-ads.json",
+    "default_account": "",
+    "accounts": {}
+  }
+}
