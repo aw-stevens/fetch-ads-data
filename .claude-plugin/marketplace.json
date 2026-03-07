@@ -1,0 +1,18 @@
+{
+  "name": "ad-analytics",
+  "owner": {
+    "name": "Alex Stevens"
+  },
+  "metadata": {
+    "description": "Ad analytics plugin — Google Ads, Google Analytics, LinkedIn Ads",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "ad-analytics",
+      "description": "Query and analyze ad performance across Google Ads, Google Analytics, and LinkedIn Ads",
+      "source": "./",
+      "strict": false
+    }
+  ]
+}
