@@ -39,12 +39,15 @@ The `--pivot` parameter determines how data is grouped:
 | `costInLocalCurrency` | Spend in account currency |
 | `costInUsd` | Spend in USD |
 
-### Engagement
+### Conversions (Insight Tag / pixel-tracked)
 | Field | Description |
 |---|---|
-| `externalWebsiteConversions` | Off-LinkedIn conversions |
-| `externalWebsitePostClickConversions` | Post-click conversions |
-| `externalWebsitePostViewConversions` | Post-view conversions |
+| `externalWebsiteConversions` | Total website conversions (click-through + view-through) |
+| `externalWebsitePostClickConversions` | Conversions after ad click |
+| `externalWebsitePostViewConversions` | Conversions after ad view (no click) |
+| `conversionValueInLocalCurrency` | Monetary value of conversions (if configured) |
+
+### Engagement
 | `likes` | Likes/reactions |
 | `comments` | Comments |
 | `shares` | Shares |

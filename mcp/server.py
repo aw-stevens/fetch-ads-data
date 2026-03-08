@@ -180,7 +180,7 @@ def linkedin_ads_query(
     start: str = "30daysAgo",
     end: str = "yesterday",
     granularity: str = "ALL",
-    fields: str = "impressions,clicks,costInLocalCurrency,dateRange,pivotValues",
+    fields: str = "impressions,clicks,costInLocalCurrency,externalWebsiteConversions,externalWebsitePostClickConversions,externalWebsitePostViewConversions,dateRange,pivotValues",
     format: str = "table",
 ) -> str:
     """Query LinkedIn Ads analytics for an ad account.

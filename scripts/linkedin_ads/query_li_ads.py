@@ -14,7 +14,7 @@ from auth import api_get
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 
-DEFAULT_FIELDS = "impressions,clicks,costInLocalCurrency,dateRange,pivotValues"
+DEFAULT_FIELDS = "impressions,clicks,costInLocalCurrency,externalWebsiteConversions,externalWebsitePostClickConversions,externalWebsitePostViewConversions,dateRange,pivotValues"
 
 
 def _resolve_date(value: str) -> date:
@@ -33,7 +33,37 @@ def _fmt_date(d: date) -> str:
     return f"(year:{d.year},month:{d.month},day:{d.day})"
 
 
-def _flatten(element: dict, pivot: str) -> dict:
+def _resolve_pivot_names(elements: list[dict], pivot: str, account_id: str) -> dict:
+    """Fetch friendly names for pivot entity IDs via the LinkedIn API.
+
+    Returns {id: name} mapping. Only resolves CAMPAIGN and CAMPAIGN_GROUP pivots;
+    other pivots return an empty dict (IDs are used as-is).
+    """
+    if pivot not in ("CAMPAIGN", "CAMPAIGN_GROUP"):
+        return {}
+
+    # Collect unique entity IDs from pivotValues
+    entity_ids = set()
+    for el in elements:
+        for urn in el.get("pivotValues", []):
+            entity_ids.add(urn.split(":")[-1])
+
+    if not entity_ids:
+        return {}
+
+    # v202602+ requires account ID in the URL path
+    resource = "adCampaigns" if pivot == "CAMPAIGN" else "adCampaignGroups"
+    names = {}
+    for eid in entity_ids:
+        try:
+            data = api_get(f"/adAccounts/{account_id}/{resource}/{eid}")
+            names[eid] = data.get("name", eid)
+        except SystemExit:
+            names[eid] = eid  # fallback if lookup fails
+    return names
+
+
+def _flatten(element: dict, pivot: str, pivot_names: dict = None) -> dict:
     """Flatten a response element into a flat dict for tabular output."""
     row = {}
     dr = element.get("dateRange")
@@ -42,8 +72,11 @@ def _flatten(element: dict, pivot: str) -> dict:
         row["date_start"] = f"{s.get('year','')}-{s.get('month',0):02d}-{s.get('day',0):02d}"
         row["date_end"] = f"{e.get('year','')}-{e.get('month',0):02d}-{e.get('day',0):02d}"
     pivot_vals = element.get("pivotValues", [])
+    raw_ids = [v.split(":")[-1] for v in pivot_vals]
     row["pivot"] = pivot
-    row["pivot_value"] = ", ".join(v.split(":")[-1] for v in pivot_vals)
+    if pivot_names:
+        row["pivot_name"] = ", ".join(pivot_names.get(rid, rid) for rid in raw_ids)
+    row["pivot_id"] = ", ".join(raw_ids)
     for k, v in element.items():
         if k not in ("dateRange", "pivotValues"):
             row[k] = v
@@ -141,7 +174,8 @@ def main():
         print("No data returned.")
         return
 
-    rows = [_flatten(el, args.pivot) for el in elements]
+    pivot_names = _resolve_pivot_names(elements, args.pivot, args.account_id)
+    rows = [_flatten(el, args.pivot, pivot_names) for el in elements]
 
     if args.format == "json":
         print(json.dumps(rows, indent=2))
