@@ -18,9 +18,19 @@ def service_config(service: str) -> dict:
     return load_config().get(service, {})
 
 
-def default_id(service: str) -> str:
+def default_ids(service: str) -> list[str]:
+    """Return default account/property IDs as a list."""
     cfg = service_config(service)
-    return cfg.get("default_account") or cfg.get("default_property") or ""
+    val = cfg.get("default_accounts") or cfg.get("default_properties") or cfg.get("default_account") or cfg.get("default_property") or []
+    if isinstance(val, str):
+        return [val] if val else []
+    return list(val)
+
+
+def default_id(service: str) -> str:
+    """Return the first default ID (for scripts that only accept one)."""
+    ids = default_ids(service)
+    return ids[0] if ids else ""
 
 
 def resolve_id(service: str, name_or_id: str) -> str:

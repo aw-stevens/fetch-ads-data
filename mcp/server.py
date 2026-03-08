@@ -6,11 +6,16 @@ Google Analytics: google_analytics_query, google_analytics_realtime
 LinkedIn Ads: linkedin_ads_query, linkedin_ads_list_accounts
 """
 
+import json
 import subprocess
 import sys
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
+
+# Import config for default IDs
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+import config
 
 mcp = FastMCP("ad_analytics")
 
@@ -45,13 +50,21 @@ def google_ads_query(
             WHERE segments.date DURING LAST_30_DAYS
             ORDER BY metrics.cost_micros DESC
             LIMIT 20
-        customer_id: Google Ads customer ID (digits only). Defaults to config default.
+        customer_id: Google Ads customer ID (digits only). Pass a specific ID to query
+            one account, or leave empty to query all default accounts from config.
         format: Output format — 'table' (default, human-readable), 'csv', or 'json'.
     """
-    cmd = [VENV_PYTHON, str(SCRIPTS / "google_ads" / "query_ads.py"), query, "--format", format]
-    if customer_id:
-        cmd += ["--customer-id", customer_id]
-    return _run(cmd)
+    ids = [customer_id] if customer_id else config.default_ids("google_ads")
+    if not ids:
+        return "Error: No customer_id provided and no defaults configured."
+    accounts = config.account_list("google_ads")
+    results = []
+    for cid in ids:
+        cmd = [VENV_PYTHON, str(SCRIPTS / "google_ads" / "query_ads.py"), query, "--customer-id", cid, "--format", format]
+        label = accounts.get(cid, cid)
+        output = _run(cmd)
+        results.append(f"=== {label} ({cid}) ===\n{output}" if len(ids) > 1 else output)
+    return "\n\n".join(results)
 
 
 @mcp.tool(
@@ -84,24 +97,33 @@ def google_analytics_query(
         dimensions: List of GA4 dimension names (e.g. ["sessionSource", "sessionMedium"]).
             Pass an empty list for metric-only queries.
         metrics: List of GA4 metric names (e.g. ["sessions", "newUsers", "engagementRate"]).
-        property_id: GA4 property ID. Defaults to config default.
+        property_id: GA4 property ID. Pass a specific ID to query one property,
+            or leave empty to query all default properties from config.
         start_date: Start of date range. Named: 7daysAgo, 30daysAgo, 90daysAgo, yesterday.
             Or YYYY-MM-DD. Default: 30daysAgo.
         end_date: End of date range. Default: today.
         limit: Maximum rows to return. Default: 100.
         format: Output format — 'table' (default), 'csv', or 'json'.
     """
-    cmd = [VENV_PYTHON, str(SCRIPTS / "google_analytics" / "query_ga.py"),
-           "--metrics", *metrics,
-           "--start", start_date,
-           "--end", end_date,
-           "--limit", str(limit),
-           "--format", format]
-    if property_id:
-        cmd += ["--property", property_id]
-    if dimensions:
-        cmd += ["--dimensions", *dimensions]
-    return _run(cmd)
+    ids = [property_id] if property_id else config.default_ids("google_analytics")
+    if not ids:
+        return "Error: No property_id provided and no defaults configured."
+    properties = config.account_list("google_analytics")
+    results = []
+    for pid in ids:
+        cmd = [VENV_PYTHON, str(SCRIPTS / "google_analytics" / "query_ga.py"),
+               "--property", pid,
+               "--metrics", *metrics,
+               "--start", start_date,
+               "--end", end_date,
+               "--limit", str(limit),
+               "--format", format]
+        if dimensions:
+            cmd += ["--dimensions", *dimensions]
+        label = properties.get(pid, pid)
+        output = _run(cmd)
+        results.append(f"=== {label} ({pid}) ===\n{output}" if len(ids) > 1 else output)
+    return "\n\n".join(results)
 
 
 @mcp.tool(
@@ -121,20 +143,29 @@ def google_analytics_realtime(
         metrics: List of realtime metric names (e.g. ["activeUsers"]).
         dimensions: List of realtime dimension names (e.g. ["city", "country", "pagePath",
             "deviceCategory", "sessionSource"]). Optional.
-        property_id: GA4 property ID. Defaults to config default.
+        property_id: GA4 property ID. Pass a specific ID to query one property,
+            or leave empty to query all default properties from config.
         limit: Maximum rows to return. Default: 50.
         format: Output format — 'table' (default), 'csv', or 'json'.
     """
-    cmd = [VENV_PYTHON, str(SCRIPTS / "google_analytics" / "query_ga.py"),
-           "--metrics", *metrics,
-           "--limit", str(limit),
-           "--format", format,
-           "--realtime"]
-    if property_id:
-        cmd += ["--property", property_id]
-    if dimensions:
-        cmd += ["--dimensions", *dimensions]
-    return _run(cmd)
+    ids = [property_id] if property_id else config.default_ids("google_analytics")
+    if not ids:
+        return "Error: No property_id provided and no defaults configured."
+    properties = config.account_list("google_analytics")
+    results = []
+    for pid in ids:
+        cmd = [VENV_PYTHON, str(SCRIPTS / "google_analytics" / "query_ga.py"),
+               "--property", pid,
+               "--metrics", *metrics,
+               "--limit", str(limit),
+               "--format", format,
+               "--realtime"]
+        if dimensions:
+            cmd += ["--dimensions", *dimensions]
+        label = properties.get(pid, pid)
+        output = _run(cmd)
+        results.append(f"=== {label} ({pid}) ===\n{output}" if len(ids) > 1 else output)
+    return "\n\n".join(results)
 
 
 # --- LinkedIn Ads ---
@@ -155,7 +186,8 @@ def linkedin_ads_query(
     """Query LinkedIn Ads analytics for an ad account.
 
     Args:
-        account_id: Sponsored account ID (digits only). Defaults to config default.
+        account_id: Sponsored account ID (digits only). Pass a specific ID to query
+            one account, or leave empty to query all default accounts from config.
         pivot: Grouping dimension. One of: ACCOUNT, CAMPAIGN (default), CAMPAIGN_GROUP,
                CREATIVE, MEMBER_COMPANY, MEMBER_INDUSTRY, MEMBER_SENIORITY,
                MEMBER_JOB_TITLE, MEMBER_COUNTRY_V2.
@@ -167,19 +199,27 @@ def linkedin_ads_query(
                 date range, pivot values.
         format: 'table' (default), 'csv', or 'json'.
     """
-    cmd = [
-        VENV_PYTHON,
-        str(SCRIPTS / "linkedin_ads" / "query_li_ads.py"),
-        "--pivot", pivot,
-        "--start", start,
-        "--end", end,
-        "--granularity", granularity,
-        "--fields", fields,
-        "--format", format,
-    ]
-    if account_id:
-        cmd += ["--account-id", account_id]
-    return _run(cmd)
+    ids = [account_id] if account_id else config.default_ids("linkedin_ads")
+    if not ids:
+        return "Error: No account_id provided and no defaults configured."
+    accounts = config.account_list("linkedin_ads")
+    results = []
+    for aid in ids:
+        cmd = [
+            VENV_PYTHON,
+            str(SCRIPTS / "linkedin_ads" / "query_li_ads.py"),
+            "--account-id", aid,
+            "--pivot", pivot,
+            "--start", start,
+            "--end", end,
+            "--granularity", granularity,
+            "--fields", fields,
+            "--format", format,
+        ]
+        label = accounts.get(aid, aid)
+        output = _run(cmd)
+        results.append(f"=== {label} ({aid}) ===\n{output}" if len(ids) > 1 else output)
+    return "\n\n".join(results)
 
 
 @mcp.tool(
