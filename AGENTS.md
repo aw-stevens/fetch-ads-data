@@ -1,0 +1,86 @@
+# Ad Analytics Plugin
+
+## Overview
+
+Claude Code plugin providing Google Ads, Google Analytics (GA4), and LinkedIn Ads querying via 3 skills and 6 MCP tools. Installed as a marketplace from `aw-stevens/ad-analytics`.
+
+## Architecture
+
+```
+.claude-plugin/marketplace.json  — Marketplace + plugin manifest
+.mcp.json                        — MCP server config (uses ${CLAUDE_PLUGIN_ROOT})
+skills/                          — 3 skills (SKILL.md + references/)
+scripts/                         — Python scripts called by MCP tools
+  config.py                      — Shared config loader (all scripts import this)
+  google_ads/                    — query_ads.py, list_accounts.py
+  google_analytics/              — query_ga.py, list_properties.py
+  linkedin_ads/                  — query_li_ads.py, list_li_accounts.py, auth.py, get_token.py
+mcp/server.py                    — Single FastMCP server, all 6 tools (subprocess pattern)
+hooks/hooks.json                 — SessionStart hook to ensure venv exists
+commands/                        — /ad-analytics-setup slash command
+templates/                       — Config and credential templates
+```
+
+## Key Design Decisions
+
+- **Single MCP server** — All 6 tools in one FastMCP process. Tools call scripts via subprocess.
+- **Config-driven** — All account IDs, credential paths, and defaults live in `~/.ad-analytics/config.json`, not hardcoded.
+- **Stable venv** — Python venv at `~/.ad-analytics/venv/` persists across plugin updates. Scripts reference it by absolute path.
+- **`${CLAUDE_PLUGIN_ROOT}`** — Used in SKILL.md and .mcp.json to resolve paths within the plugin cache (changes on update). Never used for the venv or config paths.
+
+## Runtime Paths
+
+| What | Path |
+|------|------|
+| Config | `~/.ad-analytics/config.json` |
+| Venv | `~/.ad-analytics/venv/` |
+| Google Ads creds | `~/.ad-analytics/google-ads.yaml` |
+| LinkedIn creds | `~/.ad-analytics/linkedin-ads.json` |
+| GA4 creds (ADC) | `~/.config/gcloud/application_default_credentials.json` |
+
+## Development
+
+### Adding a new tool
+
+1. Create the script in `scripts/<service>/`
+2. Import `config` for credentials and defaults: `sys.path.insert(0, str(Path(__file__).parent.parent)); import config`
+3. Add the MCP tool wrapper in `mcp/server.py` (subprocess pattern)
+4. Update the skill's SKILL.md and references if needed
+5. Update `templates/config.template.json` if the new service needs config entries
+
+### Adding a new service
+
+1. Create `scripts/<service>/` with query and list scripts
+2. Create `skills/<service>/SKILL.md` and `references/`
+3. Add service config section to `templates/config.template.json`
+4. Add MCP tools to `mcp/server.py`
+5. Update `scripts/setup.sh` to handle the new service's credentials
+6. Update marketplace.json version
+
+### Testing changes
+
+```bash
+# Test a script directly
+~/.ad-analytics/venv/bin/python scripts/google_ads/query_ads.py "SELECT campaign.name FROM campaign LIMIT 1"
+
+# Test MCP server loads
+~/.ad-analytics/venv/bin/python -c "
+import importlib.util
+spec = importlib.util.spec_from_file_location('srv', 'mcp/server.py')
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+print('Server loaded:', mod.mcp.name)
+"
+```
+
+### Publishing updates
+
+After committing and pushing to `main`, users pick up changes on next session start (marketplace auto-updates). Bump the version in `marketplace.json` for significant changes.
+
+## Style
+
+- Scripts are standalone CLI tools with argparse — testable outside MCP
+- MCP tools are thin subprocess wrappers, no business logic
+- `config.py` is the only shared module — keep it minimal
+- Skills reference `${CLAUDE_PLUGIN_ROOT}` for script paths, `~/.ad-analytics/` for runtime paths
+- No hardcoded account IDs anywhere except `~/.ad-analytics/config.json`
