@@ -1,6 +1,6 @@
 # Ad Analytics Plugin for Claude Code
 
-Query and analyze ad performance across Google Ads, Google Analytics (GA4), and LinkedIn Ads — all from Claude Code.
+Query and analyze ad performance across Google Ads, Google Analytics (GA4), Google Tags, Google Search Console, and LinkedIn Ads — all from Claude Code or Claude Desktop.
 
 ## Install
 
@@ -8,7 +8,7 @@ Query and analyze ad performance across Google Ads, Google Analytics (GA4), and 
 /plugin add aw-stevens/ad-analytics
 ```
 
-## Setup
+## Quick Setup
 
 ```
 /ad-analytics-setup
@@ -20,20 +20,36 @@ Or manually:
 bash ~/.claude/plugins/cache/aw-stevens/ad-analytics/*/scripts/setup.sh
 ```
 
-## What you get
+The setup script creates a Python venv at `~/.ad-analytics/venv/`, copies config templates, and walks you through credential setup for each service.
 
-### Skills (3)
-- **google-ads** — Query Google Ads with GAQL. Campaigns, keywords, search terms, PMax, etc.
-- **google-analytics** — Query GA4 properties. Traffic, pages, devices, realtime.
-- **linkedin-ads** — Query LinkedIn Ads analytics. Campaigns, demographics, spend.
+## What You Get
 
-### MCP Tools (6)
-- `google_ads_query` — Run GAQL queries
-- `google_ads_list_accounts` — List accessible Google Ads accounts
-- `google_analytics_query` — Run GA4 reports
-- `google_analytics_realtime` — GA4 realtime data
-- `linkedin_ads_query` — Query LinkedIn Ads analytics
-- `linkedin_ads_list_accounts` — List LinkedIn ad accounts
+### Skills (5)
+
+| Skill | Description |
+|---|---|
+| **google-ads** | Query Google Ads with GAQL. Campaigns, keywords, search terms, PMax, etc. |
+| **google-analytics** | Query GA4 properties. Traffic, pages, devices, realtime. |
+| **google-tags** | GA4 property config — data streams, conversion events, custom dimensions, Ads links. |
+| **google-search-console** | Organic search performance — queries, rankings, CTR, landing pages. |
+| **linkedin-ads** | LinkedIn Ads analytics. Campaigns, demographics, spend, conversions. |
+
+### MCP Tools (10)
+
+| Tool | Description |
+|---|---|
+| `google_ads_query` | Run GAQL queries |
+| `google_ads_list_accounts` | List accessible Google Ads accounts |
+| `google_analytics_query` | Run GA4 reports |
+| `google_analytics_realtime` | GA4 realtime data (last 30 minutes) |
+| `google_tags_query` | Query GA4 property configuration |
+| `google_tags_list_streams` | List data streams / measurement IDs |
+| `google_search_console_query` | Search analytics — queries, pages, CTR, position |
+| `google_search_console_list_sites` | List accessible Search Console sites |
+| `linkedin_ads_query` | Query LinkedIn Ads analytics |
+| `linkedin_ads_list_accounts` | List LinkedIn ad accounts |
+
+Skills trigger automatically in Claude Code based on what you ask. MCP tools are available in both Claude Code and Claude Desktop.
 
 ## Configuration
 
@@ -41,17 +57,118 @@ All config lives in `~/.ad-analytics/`:
 
 ```
 ~/.ad-analytics/
-├── config.json          # Account IDs, credential paths, defaults
-├── venv/                # Python virtual environment
-├── google-ads.yaml      # Google Ads API credentials
-└── linkedin-ads.json    # LinkedIn OAuth tokens
+├── config.json                  # Account IDs, credential paths, defaults
+├── venv/                        # Python virtual environment
+├── google-ads.yaml              # Google Ads API credentials
+├── google-search-console.json   # Search Console OAuth tokens
+├── google-tagmanager.json       # Google Tags OAuth tokens (optional)
+└── linkedin-ads.json            # LinkedIn OAuth tokens
 ```
 
-Edit `config.json` to set default accounts and add/remove properties.
+Edit `config.json` to set default accounts/properties and add or remove entries. The `default_accounts` / `default_properties` arrays control which accounts are queried when no specific ID is passed.
+
+## Credential Setup by Service
+
+Each service requires its own credentials. You don't need all five — set up only the ones you use.
+
+### Google Ads
+
+**What you need:** A Google Ads developer token, an OAuth2 client (client ID + secret), and a refresh token.
+
+**GCP setup:**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create or select a project
+2. Enable the **Google Ads API**
+3. Go to **APIs & Services > Credentials** and create an **OAuth 2.0 Client ID** (Desktop app type)
+4. Note the `client_id` and `client_secret`
+
+**Developer token:**
+1. Log into [Google Ads](https://ads.google.com/)
+2. Go to **Tools & Settings > API Center**
+3. Apply for a developer token (test or production)
+
+**Refresh token:**
+1. Use the [Google OAuth Playground](https://developers.google.com/oauthplayground/) or the `google-ads` library's `generate_user_credentials.py` to generate a refresh token with the `https://www.googleapis.com/auth/adwords` scope
+
+**Credential file:** `~/.ad-analytics/google-ads.yaml`
+```yaml
+developer_token: YOUR_DEVELOPER_TOKEN
+client_id: YOUR_CLIENT_ID.apps.googleusercontent.com
+client_secret: YOUR_CLIENT_SECRET
+refresh_token: YOUR_REFRESH_TOKEN
+use_proto_plus: True
+# login_customer_id: YOUR_MCC_ID  # if using a manager account
+```
+
+### Google Analytics (GA4)
+
+**What you need:** Google Application Default Credentials (ADC) with access to your GA4 properties.
+
+**Setup:**
+```bash
+gcloud auth application-default login
+```
+
+That's it. Your Google account needs at least Viewer access to the GA4 properties you want to query. No API keys or OAuth clients needed — ADC handles everything.
+
+**Credential file:** `~/.config/gcloud/application_default_credentials.json` (managed by gcloud)
+
+### Google Tags (GA4 Admin API)
+
+**What you need:** Uses the same ADC credentials as Google Analytics. No additional setup required.
+
+The Google Tags tool queries GA4 property configuration (data streams, key events, custom dimensions, linked Ads accounts) via the GA4 Admin API, which uses the same `analytics.readonly` scope as the Data API.
+
+### Google Search Console
+
+**What you need:** An OAuth2 refresh token with the `webmasters.readonly` scope. Reuses the same OAuth client as Google Ads.
+
+**GCP setup:**
+1. In the same GCP project as Google Ads, enable the **Search Console API**
+2. In your OAuth client's settings, add `https://www.googleapis.com/auth/webmasters.readonly` to the authorized scopes
+
+**Generate token:**
+```bash
+~/.ad-analytics/venv/bin/python <plugin-root>/scripts/google_search_console/get_token.py
+```
+
+This opens a browser for OAuth consent and saves credentials to `~/.ad-analytics/google-search-console.json`. Your Google account needs to be a verified owner or user of the Search Console properties you want to query.
+
+**Credential file:** `~/.ad-analytics/google-search-console.json` (auto-generated by `get_token.py`)
+
+### LinkedIn Ads
+
+**What you need:** A LinkedIn Developer app with Marketing API access, plus an OAuth2 refresh token.
+
+**LinkedIn setup:**
+1. Go to [LinkedIn Developers](https://www.linkedin.com/developers/apps) and create an app
+2. Under **Products**, request access to **Marketing Developer Platform** (requires approval)
+3. Under **Auth**, note the `client_id` and `client_secret`
+4. Add `http://localhost:8080/callback` as an authorized redirect URL
+
+**Generate token:**
+1. Create the initial credential file at `~/.ad-analytics/linkedin-ads.json`:
+   ```json
+   {
+     "client_id": "YOUR_CLIENT_ID",
+     "client_secret": "YOUR_CLIENT_SECRET",
+     "redirect_uri": "http://localhost:8080/callback"
+   }
+   ```
+2. Run the OAuth flow:
+   ```bash
+   ~/.ad-analytics/venv/bin/python <plugin-root>/scripts/linkedin_ads/get_token.py
+   ```
+   This opens a browser, completes OAuth, and adds the `access_token` and `refresh_token` to the credential file.
+
+**Credential file:** `~/.ad-analytics/linkedin-ads.json` (created manually, then updated by `get_token.py`)
 
 ## Requirements
 
 - Python 3.10+
-- Google Ads API credentials (developer token + OAuth2)
-- Google Cloud ADC for GA4 (`gcloud auth application-default login`)
-- LinkedIn Developer app with Marketing API access
+- `gcloud` CLI (for Google Analytics ADC)
+- A GCP project with the relevant APIs enabled (Google Ads, Search Console)
+- A LinkedIn Developer app (for LinkedIn Ads)
+
+## Development
+
+See `AGENTS.md` for project conventions and how to add new tools or services.
