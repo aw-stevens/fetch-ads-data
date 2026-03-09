@@ -54,13 +54,11 @@ jobs:
           print('Config module works')
           "
 
-      - name: All scripts parse --help
+      - name: Scripts with argparse parse --help
         run: |
           scripts=(
             scripts/google_ads/query_ads.py
-            scripts/google_ads/list_accounts.py
             scripts/google_analytics/query_ga.py
-            scripts/google_analytics/list_properties.py
             scripts/google_tags/query_google_tags.py
             scripts/google_search_console/query_gsc.py
             scripts/linkedin_ads/query_li_ads.py
@@ -71,3 +69,15 @@ jobs:
             python "$script" --help > /dev/null
           done
           echo "All scripts parse successfully"
+
+      - name: Scripts without argparse compile cleanly
+        run: |
+          scripts=(
+            scripts/google_ads/list_accounts.py
+            scripts/google_analytics/list_properties.py
+          )
+          for script in "${scripts[@]}"; do
+            echo "Compiling $script"
+            python -m py_compile "$script"
+          done
+          echo "All scripts compile successfully"
