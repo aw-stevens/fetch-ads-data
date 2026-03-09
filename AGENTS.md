@@ -2,21 +2,22 @@
 
 ## Overview
 
-Claude Code plugin providing Google Ads, Google Analytics (GA4), Google Tags, and LinkedIn Ads querying via 4 skills and 8 MCP tools. Installed as a marketplace from `aw-stevens/ad-analytics`.
+Claude Code plugin providing Google Ads, Google Analytics (GA4), Google Tags, Google Search Console, and LinkedIn Ads querying via 5 skills and 10 MCP tools. Installed as a marketplace from `aw-stevens/ad-analytics`.
 
 ## Architecture
 
 ```
 .claude-plugin/marketplace.json  — Marketplace + plugin manifest
 .mcp.json                        — MCP server config (uses ${CLAUDE_PLUGIN_ROOT})
-skills/                          — 4 skills (SKILL.md + references/)
+skills/                          — 5 skills (SKILL.md + references/)
 scripts/                         — Python scripts called by MCP tools
   config.py                      — Shared config loader (all scripts import this)
   google_ads/                    — query_ads.py, list_accounts.py
   google_analytics/              — query_ga.py, list_properties.py
   google_tags/                   — query_google_tags.py, get_token.py
+  google_search_console/         — query_gsc.py, get_token.py
   linkedin_ads/                  — query_li_ads.py, list_li_accounts.py, auth.py, get_token.py
-mcp/server.py                    — Single FastMCP server, all 8 tools (subprocess pattern)
+mcp/server.py                    — Single FastMCP server, all 10 tools (subprocess pattern)
 hooks/hooks.json                 — SessionStart hook to ensure venv exists
 commands/                        — /ad-analytics-setup slash command
 templates/                       — Config and credential templates
@@ -38,6 +39,7 @@ templates/                       — Config and credential templates
 | Google Ads creds | `~/.ad-analytics/google-ads.yaml` |
 | LinkedIn creds | `~/.ad-analytics/linkedin-ads.json` |
 | GA4 creds (ADC) | `~/.config/gcloud/application_default_credentials.json` |
+| GSC creds | `~/.ad-analytics/google-search-console.json` |
 
 ## Development
 

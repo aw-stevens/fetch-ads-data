@@ -21,7 +21,7 @@ def service_config(service: str) -> dict:
 def default_ids(service: str) -> list[str]:
     """Return default account/property IDs as a list."""
     cfg = service_config(service)
-    val = cfg.get("default_accounts") or cfg.get("default_properties") or cfg.get("default_account") or cfg.get("default_property") or []
+    val = cfg.get("default_accounts") or cfg.get("default_properties") or cfg.get("default_account") or cfg.get("default_property") or cfg.get("default_site") or []
     if isinstance(val, str):
         return [val] if val else []
     return list(val)
@@ -36,7 +36,7 @@ def default_id(service: str) -> str:
 def resolve_id(service: str, name_or_id: str) -> str:
     """Resolve a friendly name OR raw ID to a raw ID."""
     cfg = service_config(service)
-    mapping = cfg.get("accounts") or cfg.get("properties") or {}
+    mapping = cfg.get("accounts") or cfg.get("properties") or cfg.get("sites") or {}
     # Check if it's already a raw ID
     if name_or_id in mapping:
         return name_or_id
@@ -54,4 +54,4 @@ def credentials_path(service: str) -> str:
 def account_list(service: str) -> dict:
     """Return {id: name} mapping for a service."""
     cfg = service_config(service)
-    return cfg.get("accounts") or cfg.get("properties") or {}
+    return cfg.get("accounts") or cfg.get("properties") or cfg.get("sites") or {}

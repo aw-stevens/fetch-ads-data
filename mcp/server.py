@@ -1,9 +1,10 @@
 """
-Ad Analytics MCP Server — single server exposing all 8 tools.
+Ad Analytics MCP Server — single server exposing all 10 tools.
 
 Google Ads: google_ads_query, google_ads_list_accounts
 Google Analytics: google_analytics_query, google_analytics_realtime
 Google Tags: google_tags_query, google_tags_list_streams
+Google Search Console: google_search_console_query, google_search_console_list_sites
 LinkedIn Ads: linkedin_ads_query, linkedin_ads_list_accounts
 """
 
@@ -304,6 +305,69 @@ def google_tags_list_streams(
         output = _run(cmd)
         results.append(f"=== {label} ({pid}) ===\n{output}" if len(ids) > 1 else output)
     return "\n\n".join(results)
+
+
+# --- Google Search Console ---
+
+@mcp.tool(
+    name="google_search_console_query",
+    annotations={"readOnlyHint": True, "openWorldHint": False},
+)
+def google_search_console_query(
+    dimensions: list[str] = ["query"],
+    site: str = "",
+    start: str = "30daysAgo",
+    end: str = "today",
+    search_type: str = "web",
+    limit: int = 25,
+    format: str = "table",
+) -> str:
+    """Query Google Search Console search analytics — impressions, clicks, CTR, position.
+
+    Args:
+        dimensions: Dimensions to group by. One or more of: query, page, country,
+            device, date, searchAppearance. Default: ["query"].
+        site: Site URL (e.g. "https://example.com/"). Leave empty to use default from config.
+        start: Start date as YYYY-MM-DD or shorthand: 7daysAgo, 30daysAgo (default),
+               90daysAgo. Note: GSC data has ~3 day lag.
+        end: End date as YYYY-MM-DD or 'today'/'yesterday' (default: today).
+        search_type: Filter by search type: web (default), image, video, news,
+            discover, googleNews.
+        limit: Maximum rows to return (default: 25, max: 25000).
+        format: Output format — 'table' (default), 'csv', or 'json'.
+    """
+    site_url = site or config.default_id("google_search_console")
+    if not site_url:
+        return "Error: No site provided and no default configured."
+    sites = config.account_list("google_search_console")
+    label = sites.get(site_url, site_url)
+    cmd = [
+        VENV_PYTHON,
+        str(SCRIPTS / "google_search_console" / "query_gsc.py"),
+        "--site", site_url,
+        "--dimensions", *dimensions,
+        "--start", start,
+        "--end", end,
+        "--search-type", search_type,
+        "--limit", str(limit),
+        "--format", format,
+    ]
+    output = _run(cmd)
+    return f"=== {label} ===\n{output}" if not site else output
+
+
+@mcp.tool(
+    name="google_search_console_list_sites",
+    annotations={"readOnlyHint": True, "openWorldHint": False},
+)
+def google_search_console_list_sites(format: str = "table") -> str:
+    """List all sites accessible in Google Search Console."""
+    return _run([
+        VENV_PYTHON,
+        str(SCRIPTS / "google_search_console" / "query_gsc.py"),
+        "--action", "list-sites",
+        "--format", format,
+    ])
 
 
 if __name__ == "__main__":

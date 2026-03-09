@@ -13,5 +13,10 @@
     "credentials": "~/.ad-analytics/linkedin-ads.json",
     "default_accounts": [],
     "accounts": {}
+  },
+  "google_search_console": {
+    "credentials": "~/.ad-analytics/google-search-console.json",
+    "default_site": "",
+    "sites": {}
   }
 }
