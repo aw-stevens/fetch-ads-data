@@ -1,0 +1,73 @@
+name: Smoke Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-ads google-analytics-data google-analytics-admin google-api-python-client google-auth requests pyyaml "mcp[cli]"
+
+      - name: Create dummy config for imports
+        run: |
+          mkdir -p ~/.ad-analytics
+          echo '{
+            "google_ads": {"credentials": "", "default_accounts": [], "accounts": {}},
+            "google_analytics": {"credentials": "", "default_properties": [], "properties": {}},
+            "linkedin_ads": {"credentials": "", "default_accounts": [], "accounts": {}},
+            "google_search_console": {"credentials": "", "default_site": "", "sites": {}}
+          }' > ~/.ad-analytics/config.json
+
+      - name: MCP server loads
+        run: |
+          python -c "
+          import importlib.util
+          spec = importlib.util.spec_from_file_location('srv', 'mcp/server.py')
+          mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+          assert mod.mcp.name == 'ad_analytics'
+          print('MCP server loaded successfully')
+          "
+
+      - name: Config module works
+        run: |
+          python -c "
+          import sys; sys.path.insert(0, 'scripts')
+          import config
+          assert config.default_ids('google_ads') == []
+          assert config.default_id('google_ads') == ''
+          assert config.account_list('google_ads') == {}
+          assert config.credentials_path('google_ads') == ''
+          print('Config module works')
+          "
+
+      - name: All scripts parse --help
+        run: |
+          scripts=(
+            scripts/google_ads/query_ads.py
+            scripts/google_ads/list_accounts.py
+            scripts/google_analytics/query_ga.py
+            scripts/google_analytics/list_properties.py
+            scripts/google_tags/query_google_tags.py
+            scripts/google_search_console/query_gsc.py
+            scripts/linkedin_ads/query_li_ads.py
+            scripts/linkedin_ads/list_li_accounts.py
+          )
+          for script in "${scripts[@]}"; do
+            echo "Testing $script --help"
+            python "$script" --help > /dev/null
+          done
+          echo "All scripts parse successfully"
