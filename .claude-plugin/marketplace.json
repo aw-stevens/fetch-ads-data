@@ -4,13 +4,13 @@
     "name": "Alex Stevens"
   },
   "metadata": {
-    "description": "Ad analytics plugin — Google Ads, Google Analytics, LinkedIn Ads",
-    "version": "1.0.0"
+    "description": "Ad analytics plugin — Google Ads, Google Analytics, Google Tags, Google Search Console, LinkedIn Ads",
+    "version": "1.1.0"
   },
   "plugins": [
     {
       "name": "ad-analytics",
-      "description": "Query and analyze ad performance across Google Ads, Google Analytics, and LinkedIn Ads",
+      "description": "Query and analyze ad performance across Google Ads, Google Analytics, Google Tags, Google Search Console, and LinkedIn Ads",
       "source": "./",
       "strict": false
     }
