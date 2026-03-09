@@ -18,7 +18,7 @@ if [ ! -d "$VENV" ]; then
     echo "Creating Python virtual environment at $VENV..."
     python3 -m venv "$VENV"
     echo "Installing packages..."
-    "$VENV/bin/pip" install -q google-ads google-analytics-data requests "mcp[cli]"
+    "$VENV/bin/pip" install -q google-ads google-analytics-data google-analytics-admin requests "mcp[cli]"
     echo "Done."
 else
     echo "Virtual environment already exists at $VENV"

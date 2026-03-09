@@ -1,8 +1,9 @@
 """
-Ad Analytics MCP Server — single server exposing all 6 tools.
+Ad Analytics MCP Server — single server exposing all 8 tools.
 
 Google Ads: google_ads_query, google_ads_list_accounts
 Google Analytics: google_analytics_query, google_analytics_realtime
+Google Tags: google_tags_query, google_tags_list_streams
 LinkedIn Ads: linkedin_ads_query, linkedin_ads_list_accounts
 """
 
@@ -229,6 +230,80 @@ def linkedin_ads_query(
 def linkedin_ads_list_accounts(format: str = "table") -> str:
     """List all LinkedIn ad accounts accessible with the current credentials."""
     return _run([VENV_PYTHON, str(SCRIPTS / "linkedin_ads" / "list_li_accounts.py"), "--format", format])
+
+
+# --- Google Tags (GA4 Admin API) ---
+
+@mcp.tool(
+    name="google_tags_query",
+    annotations={"readOnlyHint": True, "openWorldHint": False},
+)
+def google_tags_query(
+    action: str,
+    property_id: str = "",
+    format: str = "table",
+) -> str:
+    """Query Google Tags / GA4 property configuration.
+
+    Args:
+        action: What to query. One of:
+            - list-streams: Data streams (measurement IDs like G-XXXXX)
+            - list-key-events: Conversion/key events configured for the property
+            - list-custom-dimensions: Custom event and user dimensions
+            - list-custom-metrics: Custom metrics
+            - list-ads-links: Linked Google Ads accounts
+        property_id: GA4 property ID (digits only). Pass a specific ID to query
+            one property, or leave empty to query the first default property from config.
+        format: Output format — 'table' (default), 'csv', or 'json'.
+    """
+    pid = property_id or config.default_id("google_analytics")
+    if not pid:
+        return "Error: No property_id provided and no defaults configured."
+    properties = config.account_list("google_analytics")
+    label = properties.get(pid, pid)
+    cmd = [
+        VENV_PYTHON,
+        str(SCRIPTS / "google_tags" / "query_google_tags.py"),
+        "--action", action,
+        "--property", pid,
+        "--format", format,
+    ]
+    output = _run(cmd)
+    return f"=== {label} ({pid}) ===\n{output}" if property_id == "" else output
+
+
+@mcp.tool(
+    name="google_tags_list_streams",
+    annotations={"readOnlyHint": True, "openWorldHint": False},
+)
+def google_tags_list_streams(
+    property_id: str = "",
+    format: str = "table",
+) -> str:
+    """List all data streams (Google Tags / measurement IDs) for GA4 properties.
+
+    Args:
+        property_id: GA4 property ID. Leave empty to list streams for all
+            default properties from config.
+        format: Output format — 'table' (default), 'csv', or 'json'.
+    """
+    ids = [property_id] if property_id else config.default_ids("google_analytics")
+    if not ids:
+        return "Error: No property_id provided and no defaults configured."
+    properties = config.account_list("google_analytics")
+    results = []
+    for pid in ids:
+        cmd = [
+            VENV_PYTHON,
+            str(SCRIPTS / "google_tags" / "query_google_tags.py"),
+            "--action", "list-streams",
+            "--property", pid,
+            "--format", format,
+        ]
+        label = properties.get(pid, pid)
+        output = _run(cmd)
+        results.append(f"=== {label} ({pid}) ===\n{output}" if len(ids) > 1 else output)
+    return "\n\n".join(results)
 
 
 if __name__ == "__main__":
