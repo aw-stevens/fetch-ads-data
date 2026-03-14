@@ -1,11 +1,11 @@
-# Ad Analytics Plugin for Claude Code
+# fetch-ads-data
 
-Query and analyze ad performance across Google Ads, Google Analytics (GA4), Google Tags, Google Search Console, and LinkedIn Ads — all from Claude Code or Claude Desktop.
+Pull live data from your ad platforms via API — works with any MCP-compatible client or agent harness. Skills and bundled scripts for Claude Code; MCP server for Claude Desktop or any MCP host. A lightweight alternative to token-heavy official MCPs.
 
 ## Install
 
 ```
-/plugin add aw-stevens/ad-analytics
+/plugin add aw-stevens/fetch-ads-data
 ```
 
 ## Quick Setup

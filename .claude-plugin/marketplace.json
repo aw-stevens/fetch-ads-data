@@ -1,16 +1,16 @@
 {
-  "name": "ad-analytics",
+  "name": "fetch-ads-data",
   "owner": {
     "name": "Alex Stevens"
   },
   "metadata": {
-    "description": "Ad analytics plugin — Google Ads, Google Analytics, Google Tags, Google Search Console, LinkedIn Ads",
+    "description": "Lightweight MCP + skills for live API access to Google Ads, GA4, Search Console, and LinkedIn Ads",
     "version": "1.1.0"
   },
   "plugins": [
     {
-      "name": "ad-analytics",
-      "description": "Query and analyze ad performance across Google Ads, Google Analytics, Google Tags, Google Search Console, and LinkedIn Ads",
+      "name": "fetch-ads-data",
+      "description": "Pull live data from your ad platforms via API — works with any MCP-compatible client or agent harness. Skills and bundled scripts for Claude Code; MCP server for Claude Desktop or any MCP host.",
       "source": "./",
       "strict": false
     }
