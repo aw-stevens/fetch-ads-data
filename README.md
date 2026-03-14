@@ -67,6 +67,39 @@ All config lives in `~/.fetch-ads-data/`:
 
 Edit `config.json` to set default accounts/properties and add or remove entries. The `default_accounts` / `default_properties` arrays control which accounts are queried when no specific ID is passed.
 
+```json
+{
+  "google_ads": {
+    "credentials": "~/.fetch-ads-data/google-ads.yaml",
+    "default_accounts": ["123-456-7890"],
+    "accounts": {
+      "123-456-7890": "My Company"
+    }
+  },
+  "google_analytics": {
+    "credentials": "~/.config/gcloud/application_default_credentials.json",
+    "default_properties": ["properties/123456789"],
+    "properties": {
+      "properties/123456789": "My Website"
+    }
+  },
+  "linkedin_ads": {
+    "credentials": "~/.fetch-ads-data/linkedin-ads.json",
+    "default_accounts": ["123456789"],
+    "accounts": {
+      "123456789": "My Company"
+    }
+  },
+  "google_search_console": {
+    "credentials": "~/.fetch-ads-data/google-search-console.json",
+    "default_site": "https://example.com/",
+    "sites": {
+      "https://example.com/": "My Website"
+    }
+  }
+}
+```
+
 ## Credential Setup by Service
 
 Each service requires its own credentials. You don't need all five — set up only the ones you use.
@@ -128,7 +161,7 @@ The Google Tags tool queries GA4 property configuration (data streams, key event
 
 **Generate token:**
 ```bash
-~/.fetch-ads-data/venv/bin/python <plugin-root>/scripts/google_search_console/get_token.py
+~/.fetch-ads-data/venv/bin/python ~/.claude/plugins/cache/aw-stevens/fetch-ads-data/*/scripts/google_search_console/get_token.py
 ```
 
 This opens a browser for OAuth consent and saves credentials to `~/.fetch-ads-data/google-search-console.json`. Your Google account needs to be a verified owner or user of the Search Console properties you want to query.
@@ -156,11 +189,37 @@ This opens a browser for OAuth consent and saves credentials to `~/.fetch-ads-da
    ```
 2. Run the OAuth flow:
    ```bash
-   ~/.fetch-ads-data/venv/bin/python <plugin-root>/scripts/linkedin_ads/get_token.py
+   ~/.fetch-ads-data/venv/bin/python ~/.claude/plugins/cache/aw-stevens/fetch-ads-data/*/scripts/linkedin_ads/get_token.py
    ```
    This opens a browser, completes OAuth, and adds the `access_token` and `refresh_token` to the credential file.
 
 **Credential file:** `~/.fetch-ads-data/linkedin-ads.json` (created manually, then updated by `get_token.py`)
+
+## Claude Desktop
+
+The MCP server works in Claude Desktop without Claude Code. After completing credential setup above:
+
+1. Run the setup script directly to create the venv and config:
+   ```bash
+   bash ~/.claude/plugins/cache/aw-stevens/fetch-ads-data/*/scripts/setup.sh
+   ```
+   Or clone the repo and run `bash scripts/setup.sh` from the repo root.
+
+2. Add to your `claude_desktop_config.json`:
+   ```json
+   {
+     "mcpServers": {
+       "fetch-ads-data": {
+         "command": "/Users/yourname/.fetch-ads-data/venv/bin/python",
+         "args": ["/path/to/fetch-ads-data/mcp/server.py"]
+       }
+     }
+   }
+   ```
+
+3. Restart Claude Desktop.
+
+Note: Skills are Claude Code–only. In Claude Desktop you get the 10 MCP tools directly.
 
 ## Requirements
 
