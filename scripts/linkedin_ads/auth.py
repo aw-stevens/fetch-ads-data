@@ -19,7 +19,7 @@ def _creds_file() -> Path:
     path = config.credentials_path("linkedin_ads")
     if path:
         return Path(path)
-    return Path.home() / ".ad-analytics" / "linkedin-ads.json"
+    return Path.home() / ".fetch-ads-data" / "linkedin-ads.json"
 
 
 def load_creds() -> dict:

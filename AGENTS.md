@@ -2,7 +2,7 @@
 
 ## Overview
 
-Claude Code plugin providing Google Ads, Google Analytics (GA4), Google Tags, Google Search Console, and LinkedIn Ads querying via 5 skills and 10 MCP tools. Installed as a marketplace from `aw-stevens/ad-analytics`.
+Claude Code plugin providing Google Ads, Google Analytics (GA4), Google Tags, Google Search Console, and LinkedIn Ads querying via 5 skills and 10 MCP tools. Installed as a marketplace from `aw-stevens/fetch-ads-data`.
 
 ## Architecture
 
@@ -19,27 +19,27 @@ scripts/                         — Python scripts called by MCP tools
   linkedin_ads/                  — query_li_ads.py, list_li_accounts.py, auth.py, get_token.py
 mcp/server.py                    — Single FastMCP server, all 10 tools (subprocess pattern)
 hooks/hooks.json                 — SessionStart hook to ensure venv exists
-commands/                        — /ad-analytics-setup slash command
+commands/                        — /fetch-ads-data-setup slash command
 templates/                       — Config and credential templates
 ```
 
 ## Key Design Decisions
 
 - **Single MCP server** — All 6 tools in one FastMCP process. Tools call scripts via subprocess.
-- **Config-driven** — All account IDs, credential paths, and defaults live in `~/.ad-analytics/config.json`, not hardcoded.
-- **Stable venv** — Python venv at `~/.ad-analytics/venv/` persists across plugin updates. Scripts reference it by absolute path.
+- **Config-driven** — All account IDs, credential paths, and defaults live in `~/.fetch-ads-data/config.json`, not hardcoded.
+- **Stable venv** — Python venv at `~/.fetch-ads-data/venv/` persists across plugin updates. Scripts reference it by absolute path.
 - **`${CLAUDE_PLUGIN_ROOT}`** — Used in SKILL.md and .mcp.json to resolve paths within the plugin cache (changes on update). Never used for the venv or config paths.
 
 ## Runtime Paths
 
 | What | Path |
 |------|------|
-| Config | `~/.ad-analytics/config.json` |
-| Venv | `~/.ad-analytics/venv/` |
-| Google Ads creds | `~/.ad-analytics/google-ads.yaml` |
-| LinkedIn creds | `~/.ad-analytics/linkedin-ads.json` |
+| Config | `~/.fetch-ads-data/config.json` |
+| Venv | `~/.fetch-ads-data/venv/` |
+| Google Ads creds | `~/.fetch-ads-data/google-ads.yaml` |
+| LinkedIn creds | `~/.fetch-ads-data/linkedin-ads.json` |
 | GA4 creds (ADC) | `~/.config/gcloud/application_default_credentials.json` |
-| GSC creds | `~/.ad-analytics/google-search-console.json` |
+| GSC creds | `~/.fetch-ads-data/google-search-console.json` |
 
 ## Development
 
@@ -64,10 +64,10 @@ templates/                       — Config and credential templates
 
 ```bash
 # Test a script directly
-~/.ad-analytics/venv/bin/python scripts/google_ads/query_ads.py "SELECT campaign.name FROM campaign LIMIT 1"
+~/.fetch-ads-data/venv/bin/python scripts/google_ads/query_ads.py "SELECT campaign.name FROM campaign LIMIT 1"
 
 # Test MCP server loads
-~/.ad-analytics/venv/bin/python -c "
+~/.fetch-ads-data/venv/bin/python -c "
 import importlib.util
 spec = importlib.util.spec_from_file_location('srv', 'mcp/server.py')
 mod = importlib.util.module_from_spec(spec)
@@ -85,5 +85,5 @@ After committing and pushing to `main`, users pick up changes on next session st
 - Scripts are standalone CLI tools with argparse — testable outside MCP
 - MCP tools are thin subprocess wrappers, no business logic
 - `config.py` is the only shared module — keep it minimal
-- Skills reference `${CLAUDE_PLUGIN_ROOT}` for script paths, `~/.ad-analytics/` for runtime paths
-- No hardcoded account IDs anywhere except `~/.ad-analytics/config.json`
+- Skills reference `${CLAUDE_PLUGIN_ROOT}` for script paths, `~/.fetch-ads-data/` for runtime paths
+- No hardcoded account IDs anywhere except `~/.fetch-ads-data/config.json`

@@ -21,7 +21,7 @@ import config
 
 mcp = FastMCP("ad_analytics")
 
-VENV_PYTHON = str(Path.home() / ".ad-analytics" / "venv" / "bin" / "python")
+VENV_PYTHON = str(Path.home() / ".fetch-ads-data" / "venv" / "bin" / "python")
 SCRIPTS = Path(__file__).parent.parent / "scripts"
 
 

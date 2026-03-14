@@ -17,7 +17,7 @@ Your account needs at least Viewer access to the GA4 properties.
 ## Verifying
 
 ```bash
-~/.ad-analytics/venv/bin/python ${CLAUDE_PLUGIN_ROOT}/scripts/google_tags/query_google_tags.py \
+~/.fetch-ads-data/venv/bin/python ${CLAUDE_PLUGIN_ROOT}/scripts/google_tags/query_google_tags.py \
   --action list-streams
 ```
 

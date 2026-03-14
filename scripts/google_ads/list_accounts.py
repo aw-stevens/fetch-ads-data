@@ -5,7 +5,7 @@ List all Google Ads accounts accessible with current credentials.
 Usage:
     python list_accounts.py
 
-Credentials loaded from path configured in ~/.ad-analytics/config.json
+Credentials loaded from path configured in ~/.fetch-ads-data/config.json
 """
 
 import sys

@@ -7,7 +7,7 @@ SELECT field1, field2 FROM resource WHERE conditions ORDER BY field LIMIT n
 
 ## Accounts
 
-Configured in `~/.ad-analytics/config.json` under `google_ads.accounts`.
+Configured in `~/.fetch-ads-data/config.json` under `google_ads.accounts`.
 Run `list_accounts.py` to discover all accessible accounts.
 
 ---

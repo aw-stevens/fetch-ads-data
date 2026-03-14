@@ -6,7 +6,7 @@ Search Console API — Search Analytics endpoint.
 
 ## Sites
 
-Configured in `~/.ad-analytics/config.json` under `google_search_console.sites`.
+Configured in `~/.fetch-ads-data/config.json` under `google_search_console.sites`.
 Run `query_gsc.py --action list-sites` to discover accessible sites.
 
 ---

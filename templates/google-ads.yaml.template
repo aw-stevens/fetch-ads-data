@@ -1,5 +1,5 @@
 # Google Ads API credentials
-# Copy this file to ~/.ad-analytics/google-ads.yaml and fill in the values.
+# Copy this file to ~/.fetch-ads-data/google-ads.yaml and fill in the values.
 # See skills/google-ads/references/setup.md for instructions on obtaining each value.
 
 developer_token: YOUR_DEVELOPER_TOKEN

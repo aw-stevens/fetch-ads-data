@@ -36,13 +36,13 @@ jobs:
 
       - name: Create dummy config for imports
         run: |
-          mkdir -p ~/.ad-analytics
+          mkdir -p ~/.fetch-ads-data
           echo '{
             "google_ads": {"credentials": "", "default_accounts": [], "accounts": {}},
             "google_analytics": {"credentials": "", "default_properties": [], "properties": {}},
             "linkedin_ads": {"credentials": "", "default_accounts": [], "accounts": {}},
             "google_search_console": {"credentials": "", "default_site": "", "sites": {}}
-          }' > ~/.ad-analytics/config.json
+          }' > ~/.fetch-ads-data/config.json
 
       - name: MCP server loads
         run: |

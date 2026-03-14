@@ -7,11 +7,11 @@ description: Query Google Tags and GA4 property configuration. Use when asked ab
 
 ## Prerequisites
 
-First-time setup required per machine. Run `/ad-analytics-setup` or `bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh`.
+First-time setup required per machine. Run `/fetch-ads-data-setup` or `bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh`.
 
-**Python**: `~/.ad-analytics/venv/bin/python`
+**Python**: `~/.fetch-ads-data/venv/bin/python`
 
-**Properties**: Uses the same GA4 properties configured in `~/.ad-analytics/config.json` under `google_analytics.properties`.
+**Properties**: Uses the same GA4 properties configured in `~/.fetch-ads-data/config.json` under `google_analytics.properties`.
 
 ---
 
@@ -27,7 +27,7 @@ First-time setup required per machine. Run `/ad-analytics-setup` or `bash ${CLAU
 ## Running Queries
 
 ```bash
-~/.ad-analytics/venv/bin/python \
+~/.fetch-ads-data/venv/bin/python \
   ${CLAUDE_PLUGIN_ROOT}/scripts/google_tags/query_google_tags.py \
   --action <ACTION> \
   --property <ID> \

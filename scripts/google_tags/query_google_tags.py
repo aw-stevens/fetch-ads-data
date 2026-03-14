@@ -11,7 +11,7 @@ Usage:
     python query_google_tags.py --action list-custom-dimensions --format json
     python query_google_tags.py --action list-ads-links
 
-Credentials and properties configured in ~/.ad-analytics/config.json
+Credentials and properties configured in ~/.fetch-ads-data/config.json
 """
 
 import argparse

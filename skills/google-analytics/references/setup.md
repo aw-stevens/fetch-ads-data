@@ -6,10 +6,10 @@ Run the plugin setup script:
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh
 ```
 
-Or use the `/ad-analytics-setup` command.
+Or use the `/fetch-ads-data-setup` command.
 
 The script will:
-1. Create a Python venv at `~/.ad-analytics/venv`
+1. Create a Python venv at `~/.fetch-ads-data/venv`
 2. Install the `google-analytics-data` and `mcp` packages
 3. Check for Application Default Credentials and prompt you to authenticate if missing
 4. Verify by running a test query

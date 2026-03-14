@@ -1,6 +1,6 @@
 {
   "google_ads": {
-    "credentials": "~/.ad-analytics/google-ads.yaml",
+    "credentials": "~/.fetch-ads-data/google-ads.yaml",
     "default_accounts": [],
     "accounts": {}
   },
@@ -10,12 +10,12 @@
     "properties": {}
   },
   "linkedin_ads": {
-    "credentials": "~/.ad-analytics/linkedin-ads.json",
+    "credentials": "~/.fetch-ads-data/linkedin-ads.json",
     "default_accounts": [],
     "accounts": {}
   },
   "google_search_console": {
-    "credentials": "~/.ad-analytics/google-search-console.json",
+    "credentials": "~/.fetch-ads-data/google-search-console.json",
     "default_site": "",
     "sites": {}
   }

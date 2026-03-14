@@ -6,7 +6,7 @@ GA4 Admin API v1beta — property configuration queries.
 
 ## Properties
 
-Uses the same GA4 properties from `~/.ad-analytics/config.json` under `google_analytics.properties`.
+Uses the same GA4 properties from `~/.fetch-ads-data/config.json` under `google_analytics.properties`.
 
 ---
 

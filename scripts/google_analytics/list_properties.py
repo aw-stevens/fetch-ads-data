@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-List GA4 properties configured in ~/.ad-analytics/config.json.
+List GA4 properties configured in ~/.fetch-ads-data/config.json.
 
 Also verifies access by running a simple query against each property.
 """

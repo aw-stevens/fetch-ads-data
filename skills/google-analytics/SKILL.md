@@ -7,11 +7,11 @@ description: Query and analyze Google Analytics 4 (GA4) data. Use when asked abo
 
 ## Prerequisites
 
-First-time setup required per machine. Run `/ad-analytics-setup` or `bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh`.
+First-time setup required per machine. Run `/fetch-ads-data-setup` or `bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh`.
 
-**Python**: `~/.ad-analytics/venv/bin/python`
+**Python**: `~/.fetch-ads-data/venv/bin/python`
 
-**Properties**: Configured in `~/.ad-analytics/config.json` under `google_analytics.properties`.
+**Properties**: Configured in `~/.fetch-ads-data/config.json` under `google_analytics.properties`.
 Run `list_properties.py` to verify access.
 
 ---
@@ -28,7 +28,7 @@ Run `list_properties.py` to verify access.
 ## Running Queries
 
 ```bash
-~/.ad-analytics/venv/bin/python \
+~/.fetch-ads-data/venv/bin/python \
   ${CLAUDE_PLUGIN_ROOT}/scripts/google_analytics/query_ga.py \
   --property <ID> \
   --dimensions sessionSource sessionMedium \

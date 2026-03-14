@@ -6,12 +6,12 @@ Run the plugin setup script:
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh
 ```
 
-Or use the `/ad-analytics-setup` command.
+Or use the `/fetch-ads-data-setup` command.
 
 The script will:
-1. Create a Python venv at `~/.ad-analytics/venv`
+1. Create a Python venv at `~/.fetch-ads-data/venv`
 2. Install the `google-ads` and `mcp` packages
-3. Copy credentials template to `~/.ad-analytics/google-ads.yaml` if no credentials file exists
+3. Copy credentials template to `~/.fetch-ads-data/google-ads.yaml` if no credentials file exists
 4. Verify by listing accessible Google Ads accounts
 
 ## Credentials
@@ -42,7 +42,7 @@ Generate a refresh token with the `adwords` scope using one of:
 
 ### 4. Credential File
 
-Save to `~/.ad-analytics/google-ads.yaml`:
+Save to `~/.fetch-ads-data/google-ads.yaml`:
 
 ```yaml
 developer_token: YOUR_DEVELOPER_TOKEN
@@ -59,12 +59,12 @@ login_customer_id: YOUR_MCC_ID
 
 ### 5. Config
 
-Add your accounts to `~/.ad-analytics/config.json`:
+Add your accounts to `~/.fetch-ads-data/config.json`:
 
 ```json
 {
   "google_ads": {
-    "credentials": "~/.ad-analytics/google-ads.yaml",
+    "credentials": "~/.fetch-ads-data/google-ads.yaml",
     "default_accounts": ["1234567890"],
     "accounts": {
       "1234567890": "My Account",
@@ -77,5 +77,5 @@ Add your accounts to `~/.ad-analytics/config.json`:
 ## Verifying
 
 ```bash
-~/.ad-analytics/venv/bin/python ${CLAUDE_PLUGIN_ROOT}/scripts/google_ads/list_accounts.py
+~/.fetch-ads-data/venv/bin/python ${CLAUDE_PLUGIN_ROOT}/scripts/google_ads/list_accounts.py
 ```

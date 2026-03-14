@@ -3,7 +3,7 @@
 LinkedIn OAuth2 token generation.
 
 Prerequisites:
-  - ~/.ad-analytics/linkedin-ads.json exists with client_id, client_secret, redirect_uri
+  - ~/.fetch-ads-data/linkedin-ads.json exists with client_id, client_secret, redirect_uri
   - redirect_uri is registered in your LinkedIn Developer app
     (https://www.linkedin.com/developers/apps)
 
@@ -31,7 +31,7 @@ def _creds_file() -> Path:
     path = config.credentials_path("linkedin_ads")
     if path:
         return Path(path)
-    return Path.home() / ".ad-analytics" / "linkedin-ads.json"
+    return Path.home() / ".fetch-ads-data" / "linkedin-ads.json"
 
 
 class _CallbackHandler(BaseHTTPRequestHandler):

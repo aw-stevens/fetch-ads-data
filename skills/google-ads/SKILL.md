@@ -7,11 +7,11 @@ description: Query and analyze Google Ads data using GAQL (Google Ads Query Lang
 
 ## Prerequisites
 
-First-time setup required per machine. Run `/ad-analytics-setup` or `bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh`.
+First-time setup required per machine. Run `/fetch-ads-data-setup` or `bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh`.
 
-**Python**: `~/.ad-analytics/venv/bin/python`
+**Python**: `~/.fetch-ads-data/venv/bin/python`
 
-**Accounts**: Configured in `~/.ad-analytics/config.json` under `google_ads.accounts`.
+**Accounts**: Configured in `~/.fetch-ads-data/config.json` under `google_ads.accounts`.
 Run `list_accounts.py` to discover available accounts.
 
 ---
@@ -28,7 +28,7 @@ Run `list_accounts.py` to discover available accounts.
 ## Running Queries
 
 ```bash
-~/.ad-analytics/venv/bin/python \
+~/.fetch-ads-data/venv/bin/python \
   ${CLAUDE_PLUGIN_ROOT}/scripts/google_ads/query_ads.py \
   "<GAQL query>" \
   --customer-id <ID> \
@@ -104,6 +104,6 @@ See `references/gaql-fields.md` for:
 ## Listing Accounts
 
 ```bash
-~/.ad-analytics/venv/bin/python \
+~/.fetch-ads-data/venv/bin/python \
   ${CLAUDE_PLUGIN_ROOT}/scripts/google_ads/list_accounts.py
 ```

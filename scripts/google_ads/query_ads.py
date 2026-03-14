@@ -10,7 +10,7 @@ Examples:
 
 Notes:
     - Cost fields (metrics.cost_micros) are divided by 1,000,000 and displayed as dollars.
-    - Credentials loaded from path configured in ~/.ad-analytics/config.json
+    - Credentials loaded from path configured in ~/.fetch-ads-data/config.json
     - Customer ID defaults to config default_account, or use --customer-id / GOOGLE_ADS_CUSTOMER_ID env var.
 """
 

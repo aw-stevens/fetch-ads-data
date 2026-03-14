@@ -6,7 +6,7 @@ Full API schema: https://developers.google.com/analytics/devguides/reporting/dat
 
 ## Properties
 
-Configured in `~/.ad-analytics/config.json` under `google_analytics.properties`.
+Configured in `~/.fetch-ads-data/config.json` under `google_analytics.properties`.
 Run `list_properties.py` to verify access to all properties.
 
 ---

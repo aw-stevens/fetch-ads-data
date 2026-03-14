@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-CONFIG_DIR="$HOME/.ad-analytics"
+CONFIG_DIR="$HOME/.fetch-ads-data"
 VENV="$CONFIG_DIR/venv"
 CONFIG="$CONFIG_DIR/config.json"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

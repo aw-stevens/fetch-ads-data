@@ -15,7 +15,7 @@ Date formats:
 
 Note: Search Console data has a ~3 day lag. Dates are auto-adjusted.
 
-Credentials configured in ~/.ad-analytics/config.json
+Credentials configured in ~/.fetch-ads-data/config.json
 """
 
 import argparse

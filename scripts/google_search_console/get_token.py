@@ -2,7 +2,7 @@
 """
 Generate OAuth2 refresh token for Google Search Console API.
 
-Uses the same OAuth client from your Google Ads credentials (~/.ad-analytics/google-ads.yaml)
+Uses the same OAuth client from your Google Ads credentials (~/.fetch-ads-data/google-ads.yaml)
 but requests the webmasters.readonly scope.
 
 Run: python get_token.py
@@ -21,8 +21,8 @@ import requests
 SCOPES = "https://www.googleapis.com/auth/webmasters.readonly"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_ADS_YAML = Path.home() / ".ad-analytics" / "google-ads.yaml"
-GSC_CREDS_FILE = Path.home() / ".ad-analytics" / "google-search-console.json"
+GOOGLE_ADS_YAML = Path.home() / ".fetch-ads-data" / "google-ads.yaml"
+GSC_CREDS_FILE = Path.home() / ".fetch-ads-data" / "google-search-console.json"
 REDIRECT_URI = "http://localhost:8090/callback"
 
 

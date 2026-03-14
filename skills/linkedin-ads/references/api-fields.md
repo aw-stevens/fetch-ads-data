@@ -6,7 +6,7 @@ LinkedIn Marketing API v202602 — Ad Analytics endpoint.
 
 ## Accounts
 
-Configured in `~/.ad-analytics/config.json` under `linkedin_ads.accounts`.
+Configured in `~/.fetch-ads-data/config.json` under `linkedin_ads.accounts`.
 Run `list_li_accounts.py` to discover all accessible accounts.
 
 ---

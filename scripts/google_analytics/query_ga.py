@@ -19,7 +19,7 @@ Date formats (ignored for --realtime):
     Named:  today, yesterday, 7daysAgo, 28daysAgo, 30daysAgo, 90daysAgo
     Custom: YYYY-MM-DD
 
-Credentials and properties configured in ~/.ad-analytics/config.json
+Credentials and properties configured in ~/.fetch-ads-data/config.json
 """
 
 import argparse

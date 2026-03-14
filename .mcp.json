@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "ad-analytics": {
+    "fetch-ads-data": {
       "command": "bash",
       "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/mcp-start.sh"],
       "env": {}

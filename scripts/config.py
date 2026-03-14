@@ -1,15 +1,15 @@
-"""Shared config loader for ad-analytics plugin."""
+"""Shared config loader for fetch-ads-data plugin."""
 
 import json
 import sys
 from pathlib import Path
 
-CONFIG_FILE = Path.home() / ".ad-analytics" / "config.json"
+CONFIG_FILE = Path.home() / ".fetch-ads-data" / "config.json"
 
 
 def load_config() -> dict:
     if not CONFIG_FILE.exists():
-        print(f"Error: {CONFIG_FILE} not found. Run ad-analytics setup.", file=sys.stderr)
+        print(f"Error: {CONFIG_FILE} not found. Run fetch-ads-data setup.", file=sys.stderr)
         sys.exit(1)
     return json.loads(CONFIG_FILE.read_text())
 

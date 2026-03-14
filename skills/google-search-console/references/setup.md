@@ -6,7 +6,7 @@ Run the plugin setup script:
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh
 ```
 
-Or use the `/ad-analytics-setup` command.
+Or use the `/fetch-ads-data-setup` command.
 
 ## Credentials
 
@@ -34,19 +34,19 @@ Search Console requires a dedicated OAuth2 token because its scope (`webmasters.
 ### Generate the token
 
 ```bash
-~/.ad-analytics/venv/bin/python ${CLAUDE_PLUGIN_ROOT}/scripts/google_search_console/get_token.py
+~/.fetch-ads-data/venv/bin/python ${CLAUDE_PLUGIN_ROOT}/scripts/google_search_console/get_token.py
 ```
 
-This opens a browser for OAuth consent and saves credentials to `~/.ad-analytics/google-search-console.json`.
+This opens a browser for OAuth consent and saves credentials to `~/.fetch-ads-data/google-search-console.json`.
 
 ### Config
 
-Add your sites to `~/.ad-analytics/config.json`:
+Add your sites to `~/.fetch-ads-data/config.json`:
 
 ```json
 {
   "google_search_console": {
-    "credentials": "~/.ad-analytics/google-search-console.json",
+    "credentials": "~/.fetch-ads-data/google-search-console.json",
     "default_site": "https://example.com/",
     "sites": {
       "https://example.com/": "My Site"
@@ -60,7 +60,7 @@ Add your sites to `~/.ad-analytics/config.json`:
 ## Verifying
 
 ```bash
-~/.ad-analytics/venv/bin/python ${CLAUDE_PLUGIN_ROOT}/scripts/google_search_console/query_gsc.py \
+~/.fetch-ads-data/venv/bin/python ${CLAUDE_PLUGIN_ROOT}/scripts/google_search_console/query_gsc.py \
   --action list-sites
 ```
 
