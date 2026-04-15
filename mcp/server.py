@@ -1,9 +1,10 @@
 """
-Ad Analytics MCP Server — single server exposing all 10 tools.
+Ad Analytics MCP Server — single server exposing all 12 tools.
 
 Google Ads: google_ads_query, google_ads_list_accounts
 Google Analytics: google_analytics_query, google_analytics_realtime
 Google Tags: google_tags_query, google_tags_list_streams
+Google Tag Manager: gtm_query, gtm_list_accounts
 Google Search Console: google_search_console_query, google_search_console_list_sites
 LinkedIn Ads: linkedin_ads_query, linkedin_ads_list_accounts
 """
@@ -305,6 +306,69 @@ def google_tags_list_streams(
         output = _run(cmd)
         results.append(f"=== {label} ({pid}) ===\n{output}" if len(ids) > 1 else output)
     return "\n\n".join(results)
+
+
+# --- Google Tag Manager ---
+
+@mcp.tool(
+    name="gtm_list_accounts",
+    annotations={"readOnlyHint": True, "openWorldHint": False},
+)
+def gtm_list_accounts(format: str = "table") -> str:
+    """List all Google Tag Manager accounts and containers accessible with current credentials.
+
+    Args:
+        format: Output format — 'table' (default), 'csv', or 'json'.
+    """
+    return _run([VENV_PYTHON, str(SCRIPTS / "google_tag_manager" / "list_accounts.py"), "--format", format])
+
+
+@mcp.tool(
+    name="gtm_query",
+    annotations={"readOnlyHint": True, "openWorldHint": False},
+)
+def gtm_query(
+    action: str,
+    account_id: str = "",
+    container_id: str = "",
+    workspace_id: str = "",
+    format: str = "table",
+) -> str:
+    """Query Google Tag Manager container configuration.
+
+    Args:
+        action: What to query. One of:
+            - list-containers: Containers in an account
+            - list-workspaces: Workspaces in a container
+            - list-tags: All tags with type, firing triggers, and key parameters
+            - list-triggers: All triggers with type and conditions
+            - list-variables: Custom variables
+            - list-built-in-variables: Enabled built-in variables
+            - list-folders: Tag folders
+            - get-version: Currently published (live) container version
+        account_id: GTM account ID. Leave empty to use default from config.
+        container_id: GTM container ID. Leave empty to use default from config.
+        workspace_id: Workspace ID. Leave empty to auto-detect default workspace.
+        format: Output format — 'table' (default), 'csv', or 'json'.
+    """
+    aid = account_id or config.default_id("google_tag_manager")
+    if not aid:
+        return "Error: No account_id provided and no default configured."
+    cmd = [
+        VENV_PYTHON,
+        str(SCRIPTS / "google_tag_manager" / "query_gtm.py"),
+        "--action", action,
+        "--account", aid,
+        "--format", format,
+    ]
+    if container_id:
+        cmd += ["--container", container_id]
+    if workspace_id:
+        cmd += ["--workspace", workspace_id]
+    accounts = config.account_list("google_tag_manager")
+    label = accounts.get(aid, aid)
+    output = _run(cmd)
+    return f"=== {label} ({aid}) ===\n{output}" if not account_id else output
 
 
 # --- Google Search Console ---
