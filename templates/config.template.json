@@ -18,5 +18,11 @@
     "credentials": "~/.fetch-ads-data/google-search-console.json",
     "default_site": "",
     "sites": {}
+  },
+  "google_tag_manager": {
+    "credentials": "~/.fetch-ads-data/google-tagmanager.json",
+    "default_account": "",
+    "default_container": "",
+    "accounts": {}
   }
 }

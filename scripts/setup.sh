@@ -18,7 +18,7 @@ if [ ! -d "$VENV" ]; then
     echo "Creating Python virtual environment at $VENV..."
     python3 -m venv "$VENV"
     echo "Installing packages..."
-    "$VENV/bin/pip" install -q google-ads google-analytics-data google-analytics-admin requests "mcp[cli]"
+    "$VENV/bin/pip" install -q google-ads google-analytics-data google-analytics-admin google-api-python-client requests "mcp[cli]"
     echo "Done."
 else
     echo "Virtual environment already exists at $VENV"
@@ -76,7 +76,19 @@ else
     echo "LinkedIn credentials found at $LI_CREDS"
 fi
 
-# 7. Discover accounts
+# 7. Google Tag Manager credentials
+GTM_CREDS="$CONFIG_DIR/google-tagmanager.json"
+echo ""
+echo "--- Google Tag Manager ---"
+if [ -f "$GTM_CREDS" ]; then
+    echo "GTM credentials found at $GTM_CREDS"
+else
+    echo "No GTM credentials found."
+    echo "To set up GTM access, run:"
+    echo "  $VENV/bin/python $SCRIPT_DIR/google_tag_manager/get_token.py"
+fi
+
+# 8. Discover accounts
 echo ""
 echo "--- Discovering accounts ---"
 echo ""
@@ -86,6 +98,10 @@ echo "Google Ads accounts:"
 echo ""
 echo "LinkedIn Ads accounts:"
 "$VENV/bin/python" "$SCRIPT_DIR/linkedin_ads/list_li_accounts.py" 2>/dev/null || echo "  (could not list — check credentials)"
+
+echo ""
+echo "Google Tag Manager accounts:"
+"$VENV/bin/python" "$SCRIPT_DIR/google_tag_manager/list_accounts.py" 2>/dev/null || echo "  (could not list — check credentials)"
 
 echo ""
 echo "=== Setup complete ==="
