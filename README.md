@@ -24,7 +24,7 @@ The setup script creates a Python venv at `~/.fetch-ads-data/venv/`, copies conf
 
 ## What You Get
 
-### Skills (6)
+### Skills (8)
 
 | Skill | Description |
 |---|---|
@@ -35,8 +35,9 @@ The setup script creates a Python venv at `~/.fetch-ads-data/venv/`, copies conf
 | **google-search-console** | Organic search performance — queries, rankings, CTR, landing pages. |
 | **linkedin-ads** | LinkedIn Ads analytics. Campaigns, demographics, spend, conversions. |
 | **g2-digital-markets** | G2 Digital Markets Click Report — PPC clicks, cost, conversions, CPL across Capterra, GetApp, Software Advice. |
+| **microsoft-ads** | Microsoft Advertising (Bing Ads). Account/campaign spend, clicks, impressions, conversions, monthly. |
 
-### MCP Tools (14)
+### MCP Tools (16)
 
 | Tool | Description |
 |---|---|
@@ -54,6 +55,8 @@ The setup script creates a Python venv at `~/.fetch-ads-data/venv/`, copies conf
 | `linkedin_ads_list_accounts` | List LinkedIn ad accounts |
 | `g2_digital_markets_query` | Query the G2DM Click Report (raw or aggregated by month/channel/vendor) |
 | `g2_digital_markets_verify` | Verify the G2 Digital Markets API key |
+| `microsoft_ads_query` | Query Microsoft Advertising (Bing Ads) performance reports |
+| `microsoft_ads_list_accounts` | List Microsoft Advertising accounts |
 
 Skills trigger automatically in Claude Code based on what you ask. MCP tools are available in both Claude Code and Claude Desktop.
 
@@ -69,8 +72,8 @@ All config lives in `~/.fetch-ads-data/`:
 ├── google-search-console.json   # Search Console OAuth tokens
 ├── google-tagmanager.json       # Google Tag Manager OAuth tokens
 ├── linkedin-ads.json            # LinkedIn OAuth tokens
-└── g2-digital-markets.json      # G2 Digital Markets API key
-
+├── g2-digital-markets.json      # G2 Digital Markets API key
+└── microsoft-ads.json           # Microsoft Advertising OAuth + developer token
 ```
 
 Edit `config.json` to set default accounts/properties and add or remove entries. The `default_accounts` / `default_properties` arrays control which accounts are queried when no specific ID is passed.
@@ -118,13 +121,20 @@ Edit `config.json` to set default accounts/properties and add or remove entries.
     "base_url": "https://public-api.capterra.com/v2",
     "auth_in": "header",
     "auth_param": "Authorization"
+  },
+  "microsoft_ads": {
+    "credentials": "~/.fetch-ads-data/microsoft-ads.json",
+    "default_accounts": ["1234567"],
+    "accounts": {
+      "1234567": "My Company Bing"
+    }
   }
 }
 ```
 
 ## Credential Setup by Service
 
-Each service requires its own credentials. You don't need all seven — set up only the ones you use.
+Each service requires its own credentials. You don't need all eight — set up only the ones you use.
 
 ### Google Ads
 
@@ -254,6 +264,31 @@ The endpoint and auth method are configured in `config.json` under `g2_digital_m
 
 **Credential file:** `~/.fetch-ads-data/g2-digital-markets.json` (created manually)
 
+### Microsoft Advertising (Bing Ads)
+
+**What you need:** A registered Azure/Microsoft Entra application (client ID, native/desktop type — no secret), a Microsoft Advertising **developer token**, and an OAuth2 refresh token.
+
+**Microsoft setup:**
+1. Register an app in the [Azure portal → App registrations](https://portal.azure.com). Under **Authentication → Mobile and desktop applications**, add the redirect URI `https://login.microsoftonline.com/common/oauth2/nativeclient` and add the `https://ads.microsoft.com/msads.manage` + `offline_access` permissions. Note the **Application (client) ID**.
+2. In [Microsoft Advertising](https://ads.microsoft.com) → Account settings → **Developer settings**, request a **production developer token**.
+
+**Generate token:**
+1. Create the initial credential file at `~/.fetch-ads-data/microsoft-ads.json`:
+   ```json
+   {
+     "client_id": "YOUR_AZURE_APP_CLIENT_ID",
+     "developer_token": "YOUR_MICROSOFT_ADVERTISING_DEVELOPER_TOKEN",
+     "tenant": "common"
+   }
+   ```
+2. Run the OAuth flow:
+   ```bash
+   ~/.fetch-ads-data/venv/bin/python ~/.claude/plugins/cache/aw-stevens/fetch-ads-data/*/scripts/microsoft_ads/get_token.py
+   ```
+   This opens a browser; after consent you paste the redirect URL back, and the script adds the `refresh_token` and auto-detects your `customer_id`.
+
+**Credential file:** `~/.fetch-ads-data/microsoft-ads.json` (created manually, then updated by `get_token.py`)
+
 ## Claude Desktop
 
 The MCP server works in Claude Desktop without Claude Code. After completing credential setup above:
@@ -278,7 +313,7 @@ The MCP server works in Claude Desktop without Claude Code. After completing cre
 
 3. Restart Claude Desktop.
 
-Note: Skills are Claude Code–only. In Claude Desktop you get the 14 MCP tools directly.
+Note: Skills are Claude Code–only. In Claude Desktop you get the 16 MCP tools directly.
 
 ## Requirements
 
@@ -286,6 +321,7 @@ Note: Skills are Claude Code–only. In Claude Desktop you get the 14 MCP tools 
 - `gcloud` CLI (for Google Analytics ADC)
 - A GCP project with the relevant APIs enabled (Google Ads, Search Console)
 - A LinkedIn Developer app (for LinkedIn Ads)
+- An Azure app registration + Microsoft Advertising developer token (for Microsoft Ads)
 
 ## Development
 

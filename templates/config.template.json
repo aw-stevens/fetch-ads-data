@@ -14,6 +14,11 @@
     "default_accounts": [],
     "accounts": {}
   },
+  "microsoft_ads": {
+    "credentials": "~/.fetch-ads-data/microsoft-ads.json",
+    "default_accounts": [],
+    "accounts": {}
+  },
   "google_search_console": {
     "credentials": "~/.fetch-ads-data/google-search-console.json",
     "default_site": "",

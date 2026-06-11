@@ -1,5 +1,5 @@
 """
-Ad Analytics MCP Server — single server exposing all 14 tools.
+Ad Analytics MCP Server — single server exposing all 16 tools.
 
 Google Ads: google_ads_query, google_ads_list_accounts
 Google Analytics: google_analytics_query, google_analytics_realtime
@@ -8,6 +8,7 @@ Google Tag Manager: gtm_query, gtm_list_accounts
 Google Search Console: google_search_console_query, google_search_console_list_sites
 LinkedIn Ads: linkedin_ads_query, linkedin_ads_list_accounts
 G2 Digital Markets: g2_digital_markets_query, g2_digital_markets_verify
+Microsoft Advertising: microsoft_ads_query, microsoft_ads_list_accounts
 """
 
 import json
@@ -233,6 +234,75 @@ def linkedin_ads_query(
 def linkedin_ads_list_accounts(format: str = "table") -> str:
     """List all LinkedIn ad accounts accessible with the current credentials."""
     return _run([VENV_PYTHON, str(SCRIPTS / "linkedin_ads" / "list_li_accounts.py"), "--format", format])
+
+
+# --- Microsoft Advertising (Bing Ads) ---
+
+@mcp.tool(
+    name="microsoft_ads_query",
+    annotations={"readOnlyHint": True, "openWorldHint": False},
+)
+def microsoft_ads_query(
+    account_id: str = "",
+    report_type: str = "campaign",
+    aggregation: str = "Summary",
+    start: str = "30daysAgo",
+    end: str = "yesterday",
+    columns: str = "",
+    format: str = "table",
+) -> str:
+    """Query Microsoft Advertising (Bing Ads) performance via the Reporting API.
+
+    Bing has no query language, so this mirrors the shape of the other ad-platform
+    query tools (entity + metrics + time + format) rather than a literal query string.
+    Returns spend, clicks, impressions, and conversions by account or campaign, with
+    optional monthly/daily time bucketing.
+
+    Args:
+        account_id: Microsoft Advertising account ID (digits only). Pass a specific ID
+            to query one account, or leave empty to query all default accounts from config.
+        report_type: 'campaign' (default — per-campaign rows) or 'account' (account totals).
+        aggregation: Time bucketing — Summary (default, whole range), Daily, Weekly,
+            Monthly, or Yearly. For monthly spend use Monthly.
+        start: Start date as YYYY-MM-DD or shorthand: 7daysAgo, 30daysAgo (default),
+            90daysAgo, yesterday.
+        end: End date as YYYY-MM-DD or 'yesterday' (default) or 'today'.
+        columns: Comma-separated report columns. Leave empty for sensible defaults
+            (TimePeriod, account/campaign names + IDs, CurrencyCode, Impressions, Clicks,
+            Spend, Conversions). TimePeriod is dropped automatically for Summary.
+        format: Output format — 'table' (default), 'csv', or 'json'.
+    """
+    ids = [account_id] if account_id else config.default_ids("microsoft_ads")
+    if not ids:
+        return "Error: No account_id provided and no defaults configured."
+    accounts = config.account_list("microsoft_ads")
+    results = []
+    for aid in ids:
+        cmd = [
+            VENV_PYTHON,
+            str(SCRIPTS / "microsoft_ads" / "query_ms_ads.py"),
+            "--account-id", aid,
+            "--report-type", report_type,
+            "--aggregation", aggregation,
+            "--start", start,
+            "--end", end,
+            "--format", format,
+        ]
+        if columns:
+            cmd += ["--columns", columns]
+        label = accounts.get(aid, aid)
+        output = _run(cmd)
+        results.append(f"=== {label} ({aid}) ===\n{output}" if len(ids) > 1 else output)
+    return "\n\n".join(results)
+
+
+@mcp.tool(
+    name="microsoft_ads_list_accounts",
+    annotations={"readOnlyHint": True, "openWorldHint": False},
+)
+def microsoft_ads_list_accounts(format: str = "table") -> str:
+    """List all Microsoft Advertising accounts accessible with the current credentials."""
+    return _run([VENV_PYTHON, str(SCRIPTS / "microsoft_ads" / "list_accounts.py"), "--format", format])
 
 
 # --- Google Tags (GA4 Admin API) ---

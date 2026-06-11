@@ -18,7 +18,7 @@ if [ ! -d "$VENV" ]; then
     echo "Creating Python virtual environment at $VENV..."
     python3 -m venv "$VENV"
     echo "Installing packages..."
-    "$VENV/bin/pip" install -q google-ads google-analytics-data google-analytics-admin google-api-python-client requests "mcp[cli]"
+    "$VENV/bin/pip" install -q google-ads google-analytics-data google-analytics-admin google-api-python-client requests bingads "mcp[cli]"
     echo "Done."
 else
     echo "Virtual environment already exists at $VENV"
@@ -76,7 +76,21 @@ else
     echo "LinkedIn credentials found at $LI_CREDS"
 fi
 
-# 7. Google Tag Manager credentials
+# 7. Microsoft Advertising (Bing Ads) credentials
+MS_CREDS="$CONFIG_DIR/microsoft-ads.json"
+echo ""
+echo "--- Microsoft Advertising (Bing Ads) ---"
+if [ ! -f "$MS_CREDS" ]; then
+    echo "Creating credentials template at $MS_CREDS"
+    cp "$PLUGIN_ROOT/templates/microsoft-ads.json.template" "$MS_CREDS"
+    echo "Fill in client_id and developer_token in $MS_CREDS, then run:"
+    echo "  $VENV/bin/python $SCRIPT_DIR/microsoft_ads/get_token.py"
+    echo "(See skills/microsoft-ads/references/setup.md for Azure app + developer token steps.)"
+else
+    echo "Microsoft Advertising credentials found at $MS_CREDS"
+fi
+
+# 8. Google Tag Manager credentials
 GTM_CREDS="$CONFIG_DIR/google-tagmanager.json"
 echo ""
 echo "--- Google Tag Manager ---"
@@ -88,7 +102,7 @@ else
     echo "  $VENV/bin/python $SCRIPT_DIR/google_tag_manager/get_token.py"
 fi
 
-# 8. G2 Digital Markets credentials
+# 9. G2 Digital Markets credentials
 G2_CREDS="$CONFIG_DIR/g2-digital-markets.json"
 echo ""
 echo "--- G2 Digital Markets (Capterra / GetApp / Software Advice) ---"
@@ -100,7 +114,7 @@ else
     echo "Paste the API key (from your G2DM account manager) into $G2_CREDS"
 fi
 
-# 9. Discover accounts
+# 10. Discover accounts
 echo ""
 echo "--- Discovering accounts ---"
 echo ""
@@ -118,6 +132,10 @@ echo "Google Tag Manager accounts:"
 echo ""
 echo "G2 Digital Markets API:"
 "$VENV/bin/python" "$SCRIPT_DIR/g2_digital_markets/query_g2.py" --action verify 2>/dev/null || echo "  (could not verify — add your API key to $G2_CREDS)"
+
+echo ""
+echo "Microsoft Advertising accounts:"
+"$VENV/bin/python" "$SCRIPT_DIR/microsoft_ads/list_accounts.py" 2>/dev/null || echo "  (could not list — check credentials)"
 
 echo ""
 echo "=== Setup complete ==="
