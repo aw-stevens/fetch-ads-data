@@ -1,5 +1,5 @@
 """
-Ad Analytics MCP Server — single server exposing all 12 tools.
+Ad Analytics MCP Server — single server exposing all 14 tools.
 
 Google Ads: google_ads_query, google_ads_list_accounts
 Google Analytics: google_analytics_query, google_analytics_realtime
@@ -7,6 +7,7 @@ Google Tags: google_tags_query, google_tags_list_streams
 Google Tag Manager: gtm_query, gtm_list_accounts
 Google Search Console: google_search_console_query, google_search_console_list_sites
 LinkedIn Ads: linkedin_ads_query, linkedin_ads_list_accounts
+G2 Digital Markets: g2_digital_markets_query, g2_digital_markets_verify
 """
 
 import json
@@ -431,6 +432,79 @@ def google_search_console_list_sites(format: str = "table") -> str:
         str(SCRIPTS / "google_search_console" / "query_gsc.py"),
         "--action", "list-sites",
         "--format", format,
+    ])
+
+
+# --- G2 Digital Markets (Click Report API) ---
+
+@mcp.tool(
+    name="g2_digital_markets_query",
+    annotations={"readOnlyHint": True, "openWorldHint": True},
+)
+def g2_digital_markets_query(
+    start: str = "30daysAgo",
+    end: str = "today",
+    group_by: str = "",
+    channel: str = "",
+    category: str = "",
+    country: str = "",
+    include_conversion_type: bool = False,
+    format: str = "table",
+) -> str:
+    """Query the G2 Digital Markets Click Report — PPC clicks, conversions, cost, CPL
+    across Capterra, GetApp, and Software Advice.
+
+    Returns per-record click data, or aggregated totals when group_by is set. Pagination
+    over the date range is handled automatically. Use this to feed monthly G2DM PPC spend,
+    clicks, conversions, and CPL into marketing reporting.
+
+    Args:
+        start: Start date (date of first click) as YYYY-MM-DD, or shorthand 7daysAgo,
+            30daysAgo (default), 90daysAgo.
+        end: End date (date of last click) as YYYY-MM-DD, or 'today' (default) / 'yesterday'.
+        group_by: Comma-separated grouping keys. Empty (default) returns raw per-record rows.
+            When set, sums clicks/conversions/cost and recomputes avg_cpc, conversion_rate,
+            and cpl per group. Keys: month, channel, country, category, product_name,
+            vendor_name, campaign_name. Example: "month" for monthly totals, or
+            "month,channel" for a per-channel monthly breakdown.
+        channel: Filter by channel — capterra, getapp, or "software advice".
+        category: Filter by software category.
+        country: Filter by country.
+        include_conversion_type: When true, includes a conversions_by_type breakdown
+            (bookDemo, freeTrial, other).
+        format: Output format — 'table' (default), 'csv', or 'json'.
+    """
+    cmd = [
+        VENV_PYTHON,
+        str(SCRIPTS / "g2_digital_markets" / "query_g2.py"),
+        "--start", start,
+        "--end", end,
+        "--format", format,
+    ]
+    if group_by:
+        cmd += ["--group-by", group_by]
+    if channel:
+        cmd += ["--channel", channel]
+    if category:
+        cmd += ["--category", category]
+    if country:
+        cmd += ["--country", country]
+    if include_conversion_type:
+        cmd += ["--include-conversion-type"]
+    return _run(cmd)
+
+
+@mcp.tool(
+    name="g2_digital_markets_verify",
+    annotations={"readOnlyHint": True, "openWorldHint": True},
+)
+def g2_digital_markets_verify() -> str:
+    """Verify the G2 Digital Markets API key is configured and accepted (sends a minimal
+    test request). Use this during setup to confirm connectivity before running reports."""
+    return _run([
+        VENV_PYTHON,
+        str(SCRIPTS / "g2_digital_markets" / "query_g2.py"),
+        "--action", "verify",
     ])
 
 

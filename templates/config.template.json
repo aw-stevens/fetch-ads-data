@@ -24,5 +24,11 @@
     "default_account": "",
     "default_container": "",
     "accounts": {}
+  },
+  "g2_digital_markets": {
+    "credentials": "~/.fetch-ads-data/g2-digital-markets.json",
+    "base_url": "https://public-api.capterra.com/v2",
+    "auth_in": "header",
+    "auth_param": "Authorization"
   }
 }

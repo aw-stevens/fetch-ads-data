@@ -34,8 +34,9 @@ The setup script creates a Python venv at `~/.fetch-ads-data/venv/`, copies conf
 | **google-tag-manager** | GTM container inspection — tags, triggers, variables, versions. |
 | **google-search-console** | Organic search performance — queries, rankings, CTR, landing pages. |
 | **linkedin-ads** | LinkedIn Ads analytics. Campaigns, demographics, spend, conversions. |
+| **g2-digital-markets** | G2 Digital Markets Click Report — PPC clicks, cost, conversions, CPL across Capterra, GetApp, Software Advice. |
 
-### MCP Tools (12)
+### MCP Tools (14)
 
 | Tool | Description |
 |---|---|
@@ -51,6 +52,8 @@ The setup script creates a Python venv at `~/.fetch-ads-data/venv/`, copies conf
 | `google_search_console_list_sites` | List accessible Search Console sites |
 | `linkedin_ads_query` | Query LinkedIn Ads analytics |
 | `linkedin_ads_list_accounts` | List LinkedIn ad accounts |
+| `g2_digital_markets_query` | Query the G2DM Click Report (raw or aggregated by month/channel/vendor) |
+| `g2_digital_markets_verify` | Verify the G2 Digital Markets API key |
 
 Skills trigger automatically in Claude Code based on what you ask. MCP tools are available in both Claude Code and Claude Desktop.
 
@@ -65,7 +68,9 @@ All config lives in `~/.fetch-ads-data/`:
 ├── google-ads.yaml              # Google Ads API credentials
 ├── google-search-console.json   # Search Console OAuth tokens
 ├── google-tagmanager.json       # Google Tag Manager OAuth tokens
-└── linkedin-ads.json            # LinkedIn OAuth tokens
+├── linkedin-ads.json            # LinkedIn OAuth tokens
+└── g2-digital-markets.json      # G2 Digital Markets API key
+
 ```
 
 Edit `config.json` to set default accounts/properties and add or remove entries. The `default_accounts` / `default_properties` arrays control which accounts are queried when no specific ID is passed.
@@ -107,13 +112,19 @@ Edit `config.json` to set default accounts/properties and add or remove entries.
     "accounts": {
       "123456": "My GTM Account"
     }
+  },
+  "g2_digital_markets": {
+    "credentials": "~/.fetch-ads-data/g2-digital-markets.json",
+    "base_url": "https://public-api.capterra.com/v2",
+    "auth_in": "header",
+    "auth_param": "Authorization"
   }
 }
 ```
 
 ## Credential Setup by Service
 
-Each service requires its own credentials. You don't need all six — set up only the ones you use.
+Each service requires its own credentials. You don't need all seven — set up only the ones you use.
 
 ### Google Ads
 
@@ -223,6 +234,26 @@ This opens a browser for OAuth consent and saves credentials to `~/.fetch-ads-da
 
 **Credential file:** `~/.fetch-ads-data/linkedin-ads.json` (created manually, then updated by `get_token.py`)
 
+### G2 Digital Markets
+
+**What you need:** An API key for the G2 Digital Markets **Click Report API** (PPC across Capterra, GetApp, Software Advice). Request it from your G2DM account manager.
+
+**Setup:**
+1. Create `~/.fetch-ads-data/g2-digital-markets.json` with your key:
+   ```json
+   {
+     "api_key": "YOUR_API_KEY"
+   }
+   ```
+2. Verify it works:
+   ```bash
+   ~/.fetch-ads-data/venv/bin/python ~/.claude/plugins/cache/aw-stevens/fetch-ads-data/*/scripts/g2_digital_markets/query_g2.py --action verify
+   ```
+
+The endpoint and auth method are configured in `config.json` under `g2_digital_markets`. The key is sent as a raw `Authorization` header (no `Bearer` prefix) — this is what the Click Report API expects. The `auth_in` (`header`/`query`) and `auth_param` settings let you adjust this if G2DM changes their scheme.
+
+**Credential file:** `~/.fetch-ads-data/g2-digital-markets.json` (created manually)
+
 ## Claude Desktop
 
 The MCP server works in Claude Desktop without Claude Code. After completing credential setup above:
@@ -247,7 +278,7 @@ The MCP server works in Claude Desktop without Claude Code. After completing cre
 
 3. Restart Claude Desktop.
 
-Note: Skills are Claude Code–only. In Claude Desktop you get the 12 MCP tools directly.
+Note: Skills are Claude Code–only. In Claude Desktop you get the 14 MCP tools directly.
 
 ## Requirements
 
