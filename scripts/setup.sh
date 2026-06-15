@@ -88,7 +88,19 @@ else
     echo "  $VENV/bin/python $SCRIPT_DIR/google_tag_manager/get_token.py"
 fi
 
-# 8. Discover accounts
+# 8. G2 Digital Markets credentials
+G2_CREDS="$CONFIG_DIR/g2-digital-markets.json"
+echo ""
+echo "--- G2 Digital Markets (Capterra / GetApp / Software Advice) ---"
+if [ -f "$G2_CREDS" ]; then
+    echo "G2 Digital Markets credentials found at $G2_CREDS"
+else
+    echo "Creating credentials template at $G2_CREDS"
+    cp "$PLUGIN_ROOT/templates/g2-digital-markets.json.template" "$G2_CREDS"
+    echo "Paste the API key (from your G2DM account manager) into $G2_CREDS"
+fi
+
+# 9. Discover accounts
 echo ""
 echo "--- Discovering accounts ---"
 echo ""
@@ -102,6 +114,10 @@ echo "LinkedIn Ads accounts:"
 echo ""
 echo "Google Tag Manager accounts:"
 "$VENV/bin/python" "$SCRIPT_DIR/google_tag_manager/list_accounts.py" 2>/dev/null || echo "  (could not list — check credentials)"
+
+echo ""
+echo "G2 Digital Markets API:"
+"$VENV/bin/python" "$SCRIPT_DIR/g2_digital_markets/query_g2.py" --action verify 2>/dev/null || echo "  (could not verify — add your API key to $G2_CREDS)"
 
 echo ""
 echo "=== Setup complete ==="
