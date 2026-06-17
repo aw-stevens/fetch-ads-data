@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """List Microsoft Advertising (Bing Ads) accounts accessible with current credentials.
 
-Resolves the authenticated user's CustomerId (from credentials or via GetUser) and
-calls GetAccountsInfo. Mirrors scripts/linkedin_ads/list_li_accounts.py.
+A user may have access to several customers (e.g. their own plus a managed/agency
+customer). GetAccountsInfo only returns accounts under the customer set in the request
+HEADER, so we enumerate every accessible customer (GetCustomersInfo) and query accounts
+under each with the matching header. Output includes the owning customer_id, which is
+what config.json's microsoft_ads.customer_id / the AuthorizationData header must be set to.
 """
 
 import argparse
@@ -11,26 +14,18 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from auth import ENVIRONMENT, authorization_data, load_creds
+from auth import ENVIRONMENT, build_oauth, load_creds
 
+from bingads.authorization import AuthorizationData
 from bingads.service_client import ServiceClient
 
 
-def _customer_service(auth_data):
-    return ServiceClient(
-        service="CustomerManagementService",
-        version=13,
-        authorization_data=auth_data,
-        environment=ENVIRONMENT,
-    )
-
-
-def _resolve_customer_id(auth_data, customer_service) -> int:
-    creds = load_creds()
-    if creds.get("customer_id"):
-        return int(creds["customer_id"])
-    user = customer_service.GetUser(UserId=None).User
-    return int(user.CustomerId)
+def _as_list(wrapper, attr):
+    """suds array wrappers expose the items under a single attribute; normalize to list."""
+    if wrapper is None:
+        return []
+    inner = getattr(wrapper, attr, None)
+    return inner or []
 
 
 def main():
@@ -38,48 +33,53 @@ def main():
     parser.add_argument("--format", default="table", choices=["table", "json"])
     args = parser.parse_args()
 
-    auth_data = authorization_data()
-    customer_service = _customer_service(auth_data)
-    customer_id = _resolve_customer_id(auth_data, customer_service)
+    creds = load_creds()
+    oauth = build_oauth(creds)
+    oauth.request_oauth_tokens_by_refresh_token(creds["refresh_token"])
+    dev_token = creds["developer_token"]
 
-    response = customer_service.GetAccountsInfo(
-        CustomerId=customer_id,
-        OnlyParentAccounts=False,
-    )
-    # suds returns an ArrayOfAccountInfoWithCustomerData wrapper
-    accounts = getattr(response, "AccountInfoWithCustomerData", None) or []
-    if accounts and hasattr(accounts, "AccountInfoWithCustomerData"):
-        accounts = accounts.AccountInfoWithCustomerData
+    def service(customer_id):
+        ad = AuthorizationData(customer_id=customer_id, developer_token=dev_token, authentication=oauth)
+        return ServiceClient(service="CustomerManagementService", version=13,
+                             authorization_data=ad, environment=ENVIRONMENT)
 
-    if not accounts:
+    # Discover every customer the user can access.
+    disco = service(creds.get("customer_id") or None)
+    customers = _as_list(disco.GetCustomersInfo(CustomerNameFilter="", TopN=100), "CustomerInfo")
+
+    rows = []
+    for cust in customers:
+        cust_id = getattr(cust, "Id", "")
+        cust_name = getattr(cust, "Name", "")
+        # GetAccountsInfo requires the customer in the request header to match.
+        accounts = _as_list(
+            service(cust_id).GetAccountsInfo(CustomerId=cust_id, OnlyParentAccounts=False),
+            "AccountInfo",
+        )
+        for a in accounts:
+            rows.append({
+                "account_id": getattr(a, "Id", ""),
+                "account_name": getattr(a, "Name", ""),
+                "number": getattr(a, "Number", ""),
+                "status": getattr(a, "AccountLifeCycleStatus", ""),
+                "customer_id": cust_id,
+                "customer_name": cust_name,
+            })
+
+    if not rows:
         print("No accounts found.")
         return
-
-    rows = [
-        {
-            "id": getattr(a, "Id", ""),
-            "name": getattr(a, "Name", ""),
-            "number": getattr(a, "Number", ""),
-            "status": getattr(a, "AccountLifeCycleStatus", ""),
-            "customer_id": getattr(a, "CustomerId", customer_id),
-        }
-        for a in accounts
-    ]
 
     if args.format == "json":
         print(json.dumps(rows, indent=2, default=str))
         return
 
-    print(f"{'ID':<15} {'Name':<40} {'Number':<12} {'Status':<12} {'CustomerId'}")
-    print("-" * 95)
+    cols = ["account_id", "account_name", "number", "status", "customer_id", "customer_name"]
+    widths = {c: max(len(c), max(len(str(r[c])) for r in rows)) for c in cols}
+    print("  ".join(c.ljust(widths[c]) for c in cols))
+    print("  ".join("-" * widths[c] for c in cols))
     for r in rows:
-        print(
-            f"{str(r['id']):<15} "
-            f"{str(r['name']):<40} "
-            f"{str(r['number']):<12} "
-            f"{str(r['status']):<12} "
-            f"{r['customer_id']}"
-        )
+        print("  ".join(str(r[c]).ljust(widths[c]) for c in cols))
 
 
 if __name__ == "__main__":

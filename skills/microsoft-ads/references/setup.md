@@ -49,11 +49,34 @@ Create `~/.fetch-ads-data/microsoft-ads.json` (the setup script copies a templat
 
 ```json
 {
+  "identity": "microsoft",
   "client_id": "YOUR_AZURE_APP_CLIENT_ID",
   "developer_token": "YOUR_MICROSOFT_ADVERTISING_DEVELOPER_TOKEN",
   "tenant": "common"
 }
 ```
+
+> **Sign in with Google?** Many advertisers access Microsoft Advertising via "Sign in with
+> Google" rather than a Microsoft account. If that's you, the Azure app above won't work —
+> Bing rejects a Microsoft token for a Google-identity user (`AADSTS`-style consent succeeds,
+> but the API returns `IdentityTypeMismatch / GoogleAccountIsRequired`). Use a **Google OAuth
+> client** instead (client_id + client_secret, "Desktop app" type, from Google Cloud Console —
+> or reuse the one in `~/.fetch-ads-data/google-ads.yaml`). Set:
+> ```json
+> {
+>   "identity": "google",
+>   "google_client_source": "~/.fetch-ads-data/google-ads.yaml",
+>   "developer_token": "YOUR_MICROSOFT_ADVERTISING_DEVELOPER_TOKEN"
+> }
+> ```
+> (Or put `"client_id"` + `"client_secret"` directly instead of `google_client_source`.) The
+> token flow is otherwise identical, except the browser redirects to `http://localhost/?code=…`
+> (which won't load — copy the URL anyway). The developer token is the same regardless of identity.
+
+> **Note on `customer_id`:** `get_token.py` auto-detects your primary customer, but if you have
+> access to several customers (e.g. an agency/managed account), set `customer_id` to the one that
+> **owns the account you want to query** — run `list_accounts.py` to see each account's owning
+> customer. The reporting calls send this as the customer header, and it must match the account.
 
 ### 4. Authenticate (one-time, generates a refresh token)
 

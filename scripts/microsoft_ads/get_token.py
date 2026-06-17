@@ -65,11 +65,10 @@ def main():
         sys.exit(1)
 
     creds = json.loads(creds_file.read_text())
-    if not creds.get("client_id"):
-        creds["client_id"] = input("client_id: ").strip()
     if not creds.get("developer_token"):
         creds["developer_token"] = input("developer_token: ").strip()
 
+    identity = (creds.get("identity") or "microsoft").lower()
     oauth = build_oauth(creds)
     auth_endpoint = oauth.get_authorization_endpoint()
 
@@ -77,11 +76,20 @@ def main():
     print(f"If the browser doesn't open, visit:\n  {auth_endpoint}\n")
     webbrowser.open(auth_endpoint)
 
-    print(
-        "After granting consent your browser will redirect to a (likely blank) page at\n"
-        "  https://login.microsoftonline.com/common/oauth2/nativeclient?code=...\n"
-        "Copy that page's FULL URL from the address bar and paste it below.\n"
-    )
+    if identity == "google":
+        print(
+            "Sign in with the Google account that has access to your Microsoft\n"
+            "Advertising accounts, and grant consent. Your browser will then redirect to\n"
+            "  http://localhost/?code=...\n"
+            "which will fail to load (nothing is listening) — that's fine. Copy that\n"
+            "page's FULL URL from the address bar and paste it below.\n"
+        )
+    else:
+        print(
+            "After granting consent your browser will redirect to a (likely blank) page at\n"
+            "  https://login.microsoftonline.com/common/oauth2/nativeclient?code=...\n"
+            "Copy that page's FULL URL from the address bar and paste it below.\n"
+        )
     response_uri = input("Paste the full redirect URL here: ").strip()
 
     oauth.request_oauth_tokens_by_response_uri(response_uri)

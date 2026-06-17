@@ -12,7 +12,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 
-from bingads.authorization import AuthorizationData, OAuthDesktopMobileAuthCodeGrant
+from bingads.authorization import (
+    AuthorizationData,
+    GoogleOAuthDesktopMobileAuthCodeGrant,
+    OAuthDesktopMobileAuthCodeGrant,
+)
 
 ENVIRONMENT = "production"
 API_VERSION = 13
@@ -43,25 +47,76 @@ def save_creds(creds: dict) -> None:
     creds_file.chmod(0o600)
 
 
-def build_oauth(creds: dict) -> OAuthDesktopMobileAuthCodeGrant:
-    """Build a desktop/mobile auth-code grant (native app — no client secret).
+def _google_client(creds: dict) -> tuple:
+    """Return (client_id, client_secret) for the Google sign-in flow.
 
-    The returned object persists any refreshed refresh_token back to the creds file
-    via token_refreshed_callback, so unattended runs keep working across rotations.
+    Either set explicitly in microsoft-ads.json, or read at runtime from a Google
+    OAuth client file (e.g. the plugin's google-ads.yaml) via "google_client_source".
     """
-    if not creds.get("client_id"):
-        print("Error: client_id missing from credentials.", file=sys.stderr)
+    cid, csec = creds.get("client_id"), creds.get("client_secret")
+    if cid and csec:
+        return cid, csec
+    src = creds.get("google_client_source")
+    if src:
+        path = Path(src).expanduser()
+        if not path.exists():
+            print(f"Error: google_client_source not found at {path}", file=sys.stderr)
+            sys.exit(1)
+        text = path.read_text()
+        try:
+            import yaml  # available in the venv via google-ads
+            data = yaml.safe_load(text) or {}
+            cid = cid or data.get("client_id")
+            csec = csec or data.get("client_secret")
+        except Exception:
+            import re
+            cid = cid or (re.search(r"client_id:\s*(\S+)", text) or [None, None])[1]
+            csec = csec or (re.search(r"client_secret:\s*(\S+)", text) or [None, None])[1]
+    if not (cid and csec):
+        print(
+            "Error: Google identity requires a client_id and client_secret "
+            "(set them in microsoft-ads.json or via google_client_source).",
+            file=sys.stderr,
+        )
         sys.exit(1)
+    return cid, csec
 
-    oauth = OAuthDesktopMobileAuthCodeGrant(
-        client_id=creds["client_id"],
-        env=ENVIRONMENT,
-        tenant=creds.get("tenant", "common"),
-    )
+
+def build_oauth(creds: dict):
+    """Build the OAuth auth-code grant for the configured identity type.
+
+    - identity "google" (default for Google-backed Bing users): GoogleOAuth...Grant,
+      authenticates at accounts.google.com (redirect http://localhost). Needs a Google
+      OAuth client id + secret.
+    - identity "microsoft": OAuthDesktopMobileAuthCodeGrant (native app, no secret),
+      Microsoft account sign-in.
+
+    The returned object persists a rotated refresh_token back to the creds file via
+    token_refreshed_callback, so unattended runs keep working across rotations.
+    """
+    identity = (creds.get("identity") or "microsoft").lower()
+    if identity == "google":
+        client_id, client_secret = _google_client(creds)
+        oauth = GoogleOAuthDesktopMobileAuthCodeGrant(
+            client_id=client_id,
+            client_secret=client_secret,
+            env=ENVIRONMENT,
+        )
+    else:
+        if not creds.get("client_id"):
+            print("Error: client_id missing from credentials.", file=sys.stderr)
+            sys.exit(1)
+        oauth = OAuthDesktopMobileAuthCodeGrant(
+            client_id=creds["client_id"],
+            env=ENVIRONMENT,
+            tenant=creds.get("tenant", "common"),
+        )
 
     def _on_refresh(oauth_tokens) -> None:
-        creds["refresh_token"] = oauth_tokens.refresh_token
-        save_creds(creds)
+        # Google does not return a new refresh token on refresh — keep the old one.
+        if getattr(oauth_tokens, "refresh_token", None):
+            creds["refresh_token"] = oauth_tokens.refresh_token
+            save_creds(creds)
 
     oauth.token_refreshed_callback = _on_refresh
     return oauth

@@ -41,10 +41,6 @@ REPORT_REQUEST_TYPE = {
     "campaign": "CampaignPerformanceReportRequest",
     "account": "AccountPerformanceReportRequest",
 }
-COLUMN_ARRAY_TYPE = {
-    "campaign": "ArrayOfCampaignPerformanceReportColumn",
-    "account": "ArrayOfAccountPerformanceReportColumn",
-}
 COLUMN_ITEM_ATTR = {
     "campaign": "CampaignPerformanceReportColumn",
     "account": "AccountPerformanceReportColumn",
@@ -86,27 +82,24 @@ def _build_report_request(reporting_service, report_type, columns, aggregation,
     request.ExcludeColumnHeaders = False
     request.ReportName = f"{report_type.capitalize()} Performance Report"
 
-    # Scope — restrict to the requested account.
-    account_ids = reporting_service.factory.create("ArrayOflong")
-    account_ids.long.append(int(account_id))
-    scope = request.Scope
-    scope.AccountIds = account_ids
+    # Scope — restrict to the requested account. Array wrapper types (ArrayOflong,
+    # ArrayOf*Column) live in a separate XML namespace that suds can't resolve by bare
+    # name, so we assign plain dicts and let suds serialize them.
+    scope_type = ("AccountThroughCampaignReportScope" if report_type == "campaign"
+                  else "AccountReportScope")
+    scope = reporting_service.factory.create(scope_type)
+    scope.AccountIds = {"long": [int(account_id)]}
     if report_type == "campaign":
         scope.Campaigns = None
+    request.Scope = scope
 
     # Columns.
-    column_array = reporting_service.factory.create(COLUMN_ARRAY_TYPE[report_type])
-    getattr(column_array, COLUMN_ITEM_ATTR[report_type]).extend(columns)
-    request.Columns = column_array
+    request.Columns = {COLUMN_ITEM_ATTR[report_type]: list(columns)}
 
     # Time — explicit custom date range.
     report_time = reporting_service.factory.create("ReportTime")
-    start_date = reporting_service.factory.create("Date")
-    start_date.Day, start_date.Month, start_date.Year = start.day, start.month, start.year
-    end_date = reporting_service.factory.create("Date")
-    end_date.Day, end_date.Month, end_date.Year = end.day, end.month, end.year
-    report_time.CustomDateRangeStart = start_date
-    report_time.CustomDateRangeEnd = end_date
+    report_time.CustomDateRangeStart = {"Day": start.day, "Month": start.month, "Year": start.year}
+    report_time.CustomDateRangeEnd = {"Day": end.day, "Month": end.month, "Year": end.year}
     report_time.PredefinedTime = None
     request.Time = report_time
     return request
