@@ -1,0 +1,8 @@
+{
+  "identity": "microsoft",
+  "client_id": "YOUR_AZURE_APP_CLIENT_ID",
+  "developer_token": "YOUR_MICROSOFT_ADVERTISING_DEVELOPER_TOKEN",
+  "tenant": "common",
+  "refresh_token": "",
+  "customer_id": ""
+}

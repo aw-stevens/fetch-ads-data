@@ -4,8 +4,8 @@
     "name": "Alex Stevens"
   },
   "metadata": {
-    "description": "Lightweight MCP + skills for live API access to Google Ads, GA4, Google Tag Manager, Search Console, LinkedIn Ads, and G2 Digital Markets",
-    "version": "1.3.0"
+    "description": "Lightweight MCP + skills for live API access to Google Ads, GA4, Google Tag Manager, Search Console, LinkedIn Ads, G2 Digital Markets, and Microsoft Advertising (Bing Ads)",
+    "version": "1.4.0"
   },
   "plugins": [
     {
