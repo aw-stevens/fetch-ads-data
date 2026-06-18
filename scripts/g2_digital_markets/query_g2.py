@@ -173,6 +173,32 @@ def _to_float(v) -> float:
         return 0.0
 
 
+def _normalize_conversions_by_type(cbt) -> list[tuple]:
+    """Normalize the per-record conversions_by_type into (type, count) pairs.
+
+    The API returns this field in one of two shapes depending on account/version:
+      - dict:  {"bookDemo": 3, "freeTrial": 1, "other": 0}
+      - list:  [{"type": "bookDemo", "count": 3}, {"type": "freeTrial", "count": 1}]
+    Anything else (None, unexpected types) yields no pairs.
+    """
+    if not cbt:
+        return []
+    if isinstance(cbt, dict):
+        return list(cbt.items())
+    if isinstance(cbt, list):
+        pairs = []
+        for item in cbt:
+            if not isinstance(item, dict):
+                continue
+            ctype = item.get("type") or item.get("name") or item.get("conversion_type")
+            if ctype is None:
+                continue
+            cnt = item.get("count", item.get("conversions", item.get("value", 0)))
+            pairs.append((str(ctype), cnt))
+        return pairs
+    return []
+
+
 def aggregate(records: list[dict], group_by: list[str]) -> list[dict]:
     """Group records by the given keys, summing clicks/conversions/cost and
     recomputing derived metrics (avg_cpc, conversion_rate, cpl, avg_position)."""
@@ -190,8 +216,7 @@ def aggregate(records: list[dict], group_by: list[str]) -> list[dict]:
         if "avg_position" in r and clicks > 0:
             agg["_pos_sum"] += _to_float(r.get("avg_position")) * clicks
             agg["_pos_weight"] += clicks
-        cbt = r.get("conversions_by_type") or {}
-        for ctype, cnt in cbt.items():
+        for ctype, cnt in _normalize_conversions_by_type(r.get("conversions_by_type")):
             agg["conversions_by_type"][ctype] = agg["conversions_by_type"].get(ctype, 0) + _to_float(cnt)
 
     rows = []
