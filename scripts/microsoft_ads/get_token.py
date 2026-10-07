@@ -24,32 +24,16 @@ import sys
 import webbrowser
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-import config
-
 sys.path.insert(0, str(Path(__file__).parent))
-from auth import ENVIRONMENT, _creds_file, build_oauth
-
-from bingads.authorization import AuthorizationData
-from bingads.service_client import ServiceClient
+from auth import CUSTOMER_BASE, ApiError, Client, _creds_file, _identity, authorization_url, exchange_code
 
 
-def _fetch_customer_id(creds: dict, oauth) -> str:
-    """Look up the authenticated user's CustomerId via Customer Management."""
+def _fetch_customer_id(creds: dict, token: str) -> str:
+    """Look up the authenticated user's CustomerId via Customer Management (GetUser)."""
     try:
-        auth_data = AuthorizationData(
-            authentication=oauth,
-            developer_token=creds["developer_token"],
-        )
-        customer_service = ServiceClient(
-            service="CustomerManagementService",
-            version=13,
-            authorization_data=auth_data,
-            environment=ENVIRONMENT,
-        )
-        user = customer_service.GetUser(UserId=None).User
-        return str(getattr(user, "CustomerId", "") or "")
-    except Exception as exc:  # noqa: BLE001 — best-effort convenience lookup
+        user = Client(creds, customer_id="", token=token).post(f"{CUSTOMER_BASE}/User/Query", {"UserId": None})
+        return str((user.get("User") or {}).get("CustomerId") or "")
+    except ApiError as exc:  # best-effort convenience lookup
         print(f"  (could not auto-detect customer_id: {exc})", file=sys.stderr)
         return ""
 
@@ -68,9 +52,8 @@ def main():
     if not creds.get("developer_token"):
         creds["developer_token"] = input("developer_token: ").strip()
 
-    identity = (creds.get("identity") or "microsoft").lower()
-    oauth = build_oauth(creds)
-    auth_endpoint = oauth.get_authorization_endpoint()
+    identity = _identity(creds)
+    auth_endpoint = authorization_url(creds)
 
     print("\nOpening browser for Microsoft Advertising authorization...")
     print(f"If the browser doesn't open, visit:\n  {auth_endpoint}\n")
@@ -92,11 +75,17 @@ def main():
         )
     response_uri = input("Paste the full redirect URL here: ").strip()
 
-    oauth.request_oauth_tokens_by_response_uri(response_uri)
-    tokens = oauth.oauth_tokens
+    try:
+        tokens = exchange_code(creds, response_uri)
+    except ApiError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    if not tokens.get("refresh_token"):
+        print("Error: no refresh_token returned — re-run and grant consent again.", file=sys.stderr)
+        sys.exit(1)
 
-    creds["refresh_token"] = tokens.refresh_token
-    customer_id = _fetch_customer_id(creds, oauth)
+    creds["refresh_token"] = tokens["refresh_token"]
+    customer_id = _fetch_customer_id(creds, tokens["access_token"])
     if customer_id:
         creds["customer_id"] = customer_id
 

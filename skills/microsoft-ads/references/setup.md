@@ -10,7 +10,8 @@ Or use the `/fetch-ads-data-setup` command.
 
 The script will:
 1. Create a Python venv at `~/.fetch-ads-data/venv`
-2. Install the `bingads`, `requests`, and `mcp` packages
+2. Install the `requests` and `mcp` packages (the Microsoft Ads scripts call the REST API
+   directly — the old `bingads` SOAP SDK is no longer used)
 3. Check for Microsoft Advertising credentials at `~/.fetch-ads-data/microsoft-ads.json`
 4. Point you at the OAuth flow to generate a refresh token
 
@@ -76,7 +77,10 @@ Create `~/.fetch-ads-data/microsoft-ads.json` (the setup script copies a templat
 > **Note on `customer_id`:** `get_token.py` auto-detects your primary customer, but if you have
 > access to several customers (e.g. an agency/managed account), set `customer_id` to the one that
 > **owns the account you want to query** — run `list_accounts.py` to see each account's owning
-> customer. The reporting calls send this as the customer header, and it must match the account.
+> customer. The reporting calls send this as the `CustomerId` header, and it must match the account.
+
+> **REST + Google identity:** with `"identity": "google"` every REST call also sends the header
+> `IdentityProvider: Google` (required by Microsoft for Google-federated users). This is automatic.
 
 ### 4. Authenticate (one-time, generates a refresh token)
 

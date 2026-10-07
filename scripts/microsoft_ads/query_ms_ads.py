@@ -1,28 +1,32 @@
 #!/usr/bin/env python3
-"""Query Microsoft Advertising (Bing Ads) performance via the Reporting API.
+"""Query Microsoft Advertising (Bing Ads) performance via the REST Reporting API.
 
 Bing has no query language, so this mirrors the *shape* of the other query tools
 (entity + metrics + time + format) rather than a literal query string. It submits an
-Account- or Campaign-PerformanceReport, polls until ready, downloads the CSV, and
-prints table / csv / json — the same UX as google_ads_query / linkedin_ads_query.
+Account- or Campaign-PerformanceReport (GenerateReport/Submit), polls until ready
+(GenerateReport/Poll), downloads the zipped CSV, and prints table / csv / json — the same UX as google_ads_query / linkedin_ads_query.
 """
 
 import argparse
 import csv
+import io
 import json
 import sys
-import tempfile
+import time
+import zipfile
 from datetime import date, timedelta
 from pathlib import Path
 
+import requests
+
 sys.path.insert(0, str(Path(__file__).parent))
-from auth import ENVIRONMENT, authorization_data
+from auth import REPORTING_BASE, ApiError, Client
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 
-from bingads.service_client import ServiceClient
-from bingads.v13.reporting import ReportingDownloadParameters, ReportingServiceManager
+POLL_INTERVAL_SECONDS = 5
+POLL_TIMEOUT_SECONDS = 3600
 
 # Default columns per report type. TimePeriod is dropped automatically for Summary
 # aggregation (it is only valid for time-bucketed aggregations).
@@ -40,10 +44,6 @@ DEFAULT_COLUMNS = {
 REPORT_REQUEST_TYPE = {
     "campaign": "CampaignPerformanceReportRequest",
     "account": "AccountPerformanceReportRequest",
-}
-COLUMN_ITEM_ATTR = {
-    "campaign": "CampaignPerformanceReportColumn",
-    "account": "AccountPerformanceReportColumn",
 }
 
 
@@ -71,38 +71,61 @@ def _print_table(rows: list) -> None:
         print("  ".join(str(row.get(c, "")).ljust(widths[c]) for c in cols))
 
 
-def _build_report_request(reporting_service, report_type, columns, aggregation,
-                          account_id, start, end):
-    request = reporting_service.factory.create(REPORT_REQUEST_TYPE[report_type])
-    request.Aggregation = aggregation
-    request.Format = "Csv"
-    request.ReturnOnlyCompleteData = False
-    request.ExcludeReportHeader = True
-    request.ExcludeReportFooter = True
-    request.ExcludeColumnHeaders = False
-    request.ReportName = f"{report_type.capitalize()} Performance Report"
+def _build_report_request(report_type, columns, aggregation, account_id, start, end) -> dict:
+    """REST/JSON ReportRequest body (same settings the SOAP request used)."""
+    def _date(d):
+        return {"Year": d.year, "Month": d.month, "Day": d.day}
 
-    # Scope — restrict to the requested account. Array wrapper types (ArrayOflong,
-    # ArrayOf*Column) live in a separate XML namespace that suds can't resolve by bare
-    # name, so we assign plain dicts and let suds serialize them.
-    scope_type = ("AccountThroughCampaignReportScope" if report_type == "campaign"
-                  else "AccountReportScope")
-    scope = reporting_service.factory.create(scope_type)
-    scope.AccountIds = {"long": [int(account_id)]}
-    if report_type == "campaign":
-        scope.Campaigns = None
-    request.Scope = scope
+    return {
+        "ReportRequest": {
+            "Type": REPORT_REQUEST_TYPE[report_type],
+            "Aggregation": aggregation,
+            "Format": "Csv",
+            "ReturnOnlyCompleteData": False,
+            "ExcludeReportHeader": True,
+            "ExcludeReportFooter": True,
+            "ExcludeColumnHeaders": False,
+            "ReportName": f"{report_type.capitalize()} Performance Report",
+            "Columns": list(columns),
+            "Scope": {"AccountIds": [int(account_id)]},
+            "Time": {
+                "CustomDateRangeStart": _date(start),
+                "CustomDateRangeEnd": _date(end),
+            },
+        }
+    }
 
-    # Columns.
-    request.Columns = {COLUMN_ITEM_ATTR[report_type]: list(columns)}
 
-    # Time — explicit custom date range.
-    report_time = reporting_service.factory.create("ReportTime")
-    report_time.CustomDateRangeStart = {"Day": start.day, "Month": start.month, "Year": start.year}
-    report_time.CustomDateRangeEnd = {"Day": end.day, "Month": end.month, "Year": end.year}
-    report_time.PredefinedTime = None
-    request.Time = report_time
-    return request
+def _run_report(client: Client, request: dict) -> list:
+    """Submit → poll → download the report; return rows as a list of dicts."""
+    submit = client.post(f"{REPORTING_BASE}/GenerateReport/Submit", request)
+    request_id = submit["ReportRequestId"]
+
+    deadline = time.monotonic() + POLL_TIMEOUT_SECONDS
+    while True:
+        poll = client.post(f"{REPORTING_BASE}/GenerateReport/Poll", {"ReportRequestId": request_id})
+        status = poll["ReportRequestStatus"]
+        if status["Status"] != "Pending":
+            break
+        if time.monotonic() > deadline:
+            raise ApiError(f"report {request_id} still pending after {POLL_TIMEOUT_SECONDS}s")
+        time.sleep(POLL_INTERVAL_SECONDS)
+
+    if status["Status"] != "Success":
+        raise ApiError(f"report {request_id} finished with status {status['Status']}")
+    url = status.get("ReportDownloadUrl")
+    if not url:  # Success with no download URL == no rows for the range
+        return []
+
+    # Pre-signed URL (valid ~5 min): no auth headers. Body is a ZIP holding one CSV.
+    resp = requests.get(url, timeout=300)
+    resp.raise_for_status()
+    blob = resp.content
+    if blob[:2] == b"PK":
+        with zipfile.ZipFile(io.BytesIO(blob)) as zf:
+            blob = zf.read(zf.namelist()[0])
+    text = blob.decode("utf-8-sig")
+    return list(csv.DictReader(io.StringIO(text)))
 
 
 def main():
@@ -160,41 +183,19 @@ def main():
         if args.aggregation == "Summary" and "TimePeriod" in columns:
             columns.remove("TimePeriod")
 
-    auth_data = authorization_data(account_id=int(args.account_id))
-    reporting_service = ServiceClient(
-        service="ReportingService",
-        version=13,
-        authorization_data=auth_data,
-        environment=ENVIRONMENT,
-    )
     request = _build_report_request(
-        reporting_service, args.report_type, columns, args.aggregation,
-        args.account_id, start, end,
+        args.report_type, columns, args.aggregation, args.account_id, start, end,
     )
+    try:
+        client = Client(account_id=int(args.account_id))
+        rows = _run_report(client, request)
+    except (ApiError, requests.RequestException) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
-    reporting_manager = ReportingServiceManager(
-        authorization_data=auth_data,
-        poll_interval_in_milliseconds=5000,
-        environment=ENVIRONMENT,
-    )
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        params = ReportingDownloadParameters(
-            report_request=request,
-            result_file_directory=tmpdir,
-            result_file_name="ms_ads_report.csv",
-            overwrite_result_file=True,
-            timeout_in_milliseconds=3_600_000,
-        )
-        report = reporting_manager.download_report(params)
-
-        if report is None or report.record_count == 0:
-            print("No data returned.")
-            return
-
-        report_columns = list(report.report_columns)
-        rows = [{c: rec.value(c) for c in report_columns} for rec in report.report_records]
-        report.close()
+    if not rows:
+        print("No data returned.")
+        return
 
     if args.format == "json":
         print(json.dumps(rows, indent=2))

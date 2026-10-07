@@ -5,7 +5,7 @@ A user may have access to several customers (e.g. their own plus a managed/agenc
 customer). GetAccountsInfo only returns accounts under the customer set in the request
 HEADER, so we enumerate every accessible customer (GetCustomersInfo) and query accounts
 under each with the matching header. Output includes the owning customer_id, which is
-what config.json's microsoft_ads.customer_id / the AuthorizationData header must be set to.
+what microsoft-ads.json's customer_id (sent as the CustomerId header) must be set to.
 """
 
 import argparse
@@ -14,18 +14,44 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from auth import ENVIRONMENT, build_oauth, load_creds
-
-from bingads.authorization import AuthorizationData
-from bingads.service_client import ServiceClient
+from auth import CUSTOMER_BASE, ApiError, Client
 
 
-def _as_list(wrapper, attr):
-    """suds array wrappers expose the items under a single attribute; normalize to list."""
-    if wrapper is None:
-        return []
-    inner = getattr(wrapper, attr, None)
-    return inner or []
+def _long(value):
+    """REST serializes longs as JSON strings; keep the SOAP-era int output."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return value if value is not None else ""
+
+
+def _list_accounts(client: Client) -> list:
+    # Discover every customer the user can access.
+    customers = client.post(
+        f"{CUSTOMER_BASE}/CustomersInfo/Query",
+        {"CustomerNameFilter": "", "TopN": 100},
+    ).get("CustomersInfo") or []
+
+    rows = []
+    for cust in customers:
+        cust_id = _long(cust.get("Id"))
+        cust_name = cust.get("Name", "")
+        # GetAccountsInfo requires the customer in the request header to match.
+        accounts = client.post(
+            f"{CUSTOMER_BASE}/AccountsInfo/Query",
+            {"CustomerId": cust_id, "OnlyParentAccounts": False},
+            customer_id=cust_id,
+        ).get("AccountsInfo") or []
+        for a in accounts:
+            rows.append({
+                "account_id": _long(a.get("Id")),
+                "account_name": a.get("Name", ""),
+                "number": a.get("Number", ""),
+                "status": a.get("AccountLifeCycleStatus", ""),
+                "customer_id": cust_id,
+                "customer_name": cust_name,
+            })
+    return rows
 
 
 def main():
@@ -33,38 +59,11 @@ def main():
     parser.add_argument("--format", default="table", choices=["table", "json"])
     args = parser.parse_args()
 
-    creds = load_creds()
-    oauth = build_oauth(creds)
-    oauth.request_oauth_tokens_by_refresh_token(creds["refresh_token"])
-    dev_token = creds["developer_token"]
-
-    def service(customer_id):
-        ad = AuthorizationData(customer_id=customer_id, developer_token=dev_token, authentication=oauth)
-        return ServiceClient(service="CustomerManagementService", version=13,
-                             authorization_data=ad, environment=ENVIRONMENT)
-
-    # Discover every customer the user can access.
-    disco = service(creds.get("customer_id") or None)
-    customers = _as_list(disco.GetCustomersInfo(CustomerNameFilter="", TopN=100), "CustomerInfo")
-
-    rows = []
-    for cust in customers:
-        cust_id = getattr(cust, "Id", "")
-        cust_name = getattr(cust, "Name", "")
-        # GetAccountsInfo requires the customer in the request header to match.
-        accounts = _as_list(
-            service(cust_id).GetAccountsInfo(CustomerId=cust_id, OnlyParentAccounts=False),
-            "AccountInfo",
-        )
-        for a in accounts:
-            rows.append({
-                "account_id": getattr(a, "Id", ""),
-                "account_name": getattr(a, "Name", ""),
-                "number": getattr(a, "Number", ""),
-                "status": getattr(a, "AccountLifeCycleStatus", ""),
-                "customer_id": cust_id,
-                "customer_name": cust_name,
-            })
+    try:
+        rows = _list_accounts(Client())
+    except ApiError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     if not rows:
         print("No accounts found.")

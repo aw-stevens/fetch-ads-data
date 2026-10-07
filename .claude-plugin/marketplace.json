@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Lightweight MCP + skills for live API access to Google Ads, GA4, Google Tag Manager, Search Console, LinkedIn Ads, G2 Digital Markets, and Microsoft Advertising (Bing Ads)",
-    "version": "1.4.1"
+    "version": "1.5.0"
   },
   "plugins": [
     {

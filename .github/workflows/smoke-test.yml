@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install google-ads google-analytics-data google-analytics-admin google-api-python-client google-auth requests pyyaml "mcp[cli]"
+          pip install google-ads google-analytics-data google-analytics-admin google-api-python-client google-auth requests pyyaml "mcp[cli]<2"
 
       - name: Create dummy config for imports
         run: |
@@ -78,6 +78,8 @@ jobs:
             scripts/linkedin_ads/query_li_ads.py
             scripts/linkedin_ads/list_li_accounts.py
             scripts/g2_digital_markets/query_g2.py
+            scripts/microsoft_ads/query_ms_ads.py
+            scripts/microsoft_ads/list_accounts.py
           )
           for script in "${scripts[@]}"; do
             echo "Testing $script --help"
@@ -88,6 +90,7 @@ jobs:
       - name: Unit tests
         run: |
           python scripts/g2_digital_markets/test_query_g2.py
+          python scripts/microsoft_ads/test_rest_client.py
           echo "All unit tests passed"
 
       - name: Scripts without argparse compile cleanly
