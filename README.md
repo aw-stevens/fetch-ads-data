@@ -287,6 +287,10 @@ The endpoint and auth method are configured in `config.json` under `g2_digital_m
    ```
    This opens a browser; after consent you paste the redirect URL back, and the script adds the `refresh_token` and auto-detects your `customer_id`.
 
+**Sign in with Google?** Use `"identity": "google"` with a Google OAuth client instead of the Azure app — see `skills/microsoft-ads/references/setup.md`.
+
+The scripts call the Microsoft Advertising **REST** API (v13) directly with `requests`; the `bingads` SOAP SDK is no longer required (SOAP is fully deprecated on 2027-01-31).
+
 **Credential file:** `~/.fetch-ads-data/microsoft-ads.json` (created manually, then updated by `get_token.py`)
 
 ## Claude Desktop

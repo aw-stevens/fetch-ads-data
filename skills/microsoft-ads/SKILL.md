@@ -1,6 +1,6 @@
 ---
 name: microsoft-ads
-description: Query and analyze Microsoft Advertising (Bing Ads) performance data. Use when asked about Bing Ads / Microsoft Advertising campaigns, spend, clicks, impressions, conversions, CTR, CPC, or monthly Bing ad performance. Pulls Account- and Campaign-PerformanceReports for connected accounts via the Microsoft Advertising Reporting API.
+description: Query and analyze Microsoft Advertising (Bing Ads) performance data. Use when asked about Bing Ads / Microsoft Advertising campaigns, spend, clicks, impressions, conversions, CTR, CPC, or monthly Bing ad performance. Pulls Account- and Campaign-PerformanceReports for connected accounts via the Microsoft Advertising REST Reporting API.
 ---
 
 # Microsoft Advertising (Bing Ads)
@@ -9,7 +9,9 @@ description: Query and analyze Microsoft Advertising (Bing Ads) performance data
 
 First-time setup required per machine. Run `/fetch-ads-data-setup` or `bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh`.
 
-**Python**: `~/.fetch-ads-data/venv/bin/python` (needs the `bingads` package — installed by setup).
+**Python**: `~/.fetch-ads-data/venv/bin/python`. Calls the Microsoft Advertising **REST** API (v13)
+directly with `requests` — no `bingads` SDK needed (the SOAP API it wraps is fully deprecated
+on 2027-01-31).
 
 **Accounts**: Configured in `~/.fetch-ads-data/config.json` under `microsoft_ads.accounts`.
 Run `list_accounts.py` to discover available accounts.
@@ -27,6 +29,8 @@ See `references/setup.md` for Azure app registration, developer token, and OAuth
 
 Bing has no query language — this tool mirrors the *shape* of `google_ads_query` /
 `linkedin_ads_query` (entity + metrics + time + format), not a literal query string.
+Under the hood it submits a report (`GenerateReport/Submit`), polls until ready
+(`GenerateReport/Poll`, usually a few seconds), and downloads the zipped CSV.
 
 ---
 
@@ -85,3 +89,16 @@ date-range details.
 ~/.fetch-ads-data/venv/bin/python \
   ${CLAUDE_PLUGIN_ROOT}/scripts/microsoft_ads/list_accounts.py
 ```
+
+Uses Customer Management (`CustomersInfo/Query` → `AccountsInfo/Query` per customer).
+
+---
+
+## Errors
+
+API faults are printed as `Error: HTTP <status>: <ErrorCode> (<code>): <message> (TrackingId …)`.
+Common ones:
+- `InvalidCustomDateRangeEnd (2010)` / `InvalidCustomDateRangeStart` — the range is outside data retention
+  (Daily/Weekly data is kept ~36 months) or `--end` is before `--start`.
+- `OAuth token request failed (invalid_grant …)` — the refresh token was revoked/expired;
+  re-run `get_token.py` (see `references/setup.md`).

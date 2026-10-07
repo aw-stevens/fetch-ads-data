@@ -1,7 +1,8 @@
 # Microsoft Advertising — Report Fields Reference
 
-The query tool wraps the Microsoft Advertising **Reporting API** (Bing Ads API v13). It
-submits a performance report, polls until ready, downloads the CSV, and prints the rows.
+The query tool wraps the Microsoft Advertising **REST Reporting API** (v13). It submits a
+performance report (`POST …/Reporting/v13/GenerateReport/Submit`), polls until ready
+(`…/GenerateReport/Poll`), downloads the zipped CSV from the pre-signed URL, and prints the rows.
 
 Docs: https://learn.microsoft.com/en-us/advertising/guides/reports?view=bingads-13
 
