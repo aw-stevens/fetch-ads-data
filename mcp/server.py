@@ -16,13 +16,16 @@ import subprocess
 import sys
 from pathlib import Path
 
-from mcp.server.fastmcp import FastMCP
+try:
+    from mcp.server.mcpserver import MCPServer  # mcp >= 2 (FastMCP was renamed)
+except ImportError:
+    from mcp.server.fastmcp import FastMCP as MCPServer  # mcp 1.x — existing venvs
 
 # Import config for default IDs
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 import config
 
-mcp = FastMCP("ad_analytics")
+mcp = MCPServer("ad_analytics")
 
 VENV_PYTHON = str(Path.home() / ".fetch-ads-data" / "venv" / "bin" / "python")
 SCRIPTS = Path(__file__).parent.parent / "scripts"
