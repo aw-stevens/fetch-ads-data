@@ -22,6 +22,12 @@ jobs:
 
   smoke-test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # New venvs get mcp 2.x; venvs created before it stay on 1.x. Support both.
+        mcp: ["mcp[cli]>=2", "mcp[cli]<2"]
+    name: smoke-test (${{ matrix.mcp }})
     steps:
       - uses: actions/checkout@v4
 
@@ -32,7 +38,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install google-ads google-analytics-data google-analytics-admin google-api-python-client google-auth requests pyyaml "mcp[cli]<2"
+          pip install google-ads google-analytics-data google-analytics-admin google-api-python-client google-auth requests pyyaml "${{ matrix.mcp }}"
 
       - name: Create dummy config for imports
         run: |
