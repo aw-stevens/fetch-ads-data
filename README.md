@@ -89,9 +89,9 @@ Edit `config.json` to set default accounts/properties and add or remove entries.
   },
   "google_analytics": {
     "credentials": "~/.config/gcloud/application_default_credentials.json",
-    "default_properties": ["properties/123456789"],
+    "default_properties": ["123456789"],
     "properties": {
-      "properties/123456789": "My Website"
+      "123456789": "My Website"
     }
   },
   "linkedin_ads": {

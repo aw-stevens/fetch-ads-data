@@ -1,0 +1,8 @@
+google-ads
+google-analytics-admin
+google-analytics-data
+google-api-python-client
+google-auth
+pyyaml
+requests
+mcp[cli]

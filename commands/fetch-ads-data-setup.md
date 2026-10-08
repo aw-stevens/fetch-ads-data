@@ -11,7 +11,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh
 
 This will:
 1. Create/verify the Python virtual environment at `~/.fetch-ads-data/venv`
-2. Install required packages (google-ads, google-analytics-data, requests, mcp)
+2. Install the required packages from `requirements.txt`
 3. Set up credential files for each service
 4. Discover and list available accounts/properties
 5. Create `~/.fetch-ads-data/config.json` if it doesn't exist

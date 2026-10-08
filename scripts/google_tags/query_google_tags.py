@@ -119,9 +119,9 @@ def list_custom_dimensions(client, property_id: str) -> list[dict]:
 
 def list_custom_metrics(client, property_id: str) -> list[dict]:
     SCOPE = {0: "UNSPECIFIED", 1: "EVENT"}
-    UNIT = {0: "UNSPECIFIED", 1: "STANDARD", 2: "CURRENCY", 4: "FEET", 5: "METERS",
-            6: "KILOMETERS", 7: "MILES", 8: "MILLISECONDS", 9: "SECONDS",
-            10: "MINUTES", 11: "HOURS"}
+    UNIT = {0: "UNSPECIFIED", 1: "STANDARD", 2: "CURRENCY", 3: "FEET", 4: "METERS",
+            5: "KILOMETERS", 6: "MILES", 7: "MILLISECONDS", 8: "SECONDS",
+            9: "MINUTES", 10: "HOURS"}
     rows = []
     for m in client.list_custom_metrics(parent=f"properties/{property_id}"):
         rows.append({

@@ -528,8 +528,8 @@ def g2_digital_markets_query(
     across Capterra, GetApp, and Software Advice.
 
     Returns per-record click data, or aggregated totals when group_by is set. Pagination
-    over the date range is handled automatically. Use this to feed monthly G2DM PPC spend,
-    clicks, conversions, and CPL into marketing reporting.
+    over the date range is handled automatically. Use group_by="month" for monthly G2DM PPC
+    spend, clicks, conversions, and CPL.
 
     Args:
         start: Start date (date of first click) as YYYY-MM-DD, or shorthand 7daysAgo,
