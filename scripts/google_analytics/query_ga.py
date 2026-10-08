@@ -53,7 +53,12 @@ def main():
     default_property = config.default_id("google_analytics")
 
     parser = argparse.ArgumentParser(description="Query GA4 via the Data API")
-    parser.add_argument("--property", default=default_property or "123456789", help="GA4 property ID (digits only)")
+    parser.add_argument(
+        "--property",
+        default=default_property or None,
+        required=not bool(default_property),
+        help="GA4 property ID (digits only). Defaults to google_analytics.default_properties in config.",
+    )
     parser.add_argument("--dimensions", nargs="+", default=[], metavar="DIM", help="Dimension names")
     parser.add_argument("--metrics", nargs="+", required=True, metavar="MET", help="Metric names")
     parser.add_argument("--start", default="30daysAgo", help="Start date (default: 30daysAgo)")

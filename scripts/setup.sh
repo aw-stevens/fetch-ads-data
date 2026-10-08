@@ -13,16 +13,10 @@ echo ""
 # 1. Create config directory
 mkdir -p "$CONFIG_DIR"
 
-# 2. Create venv
-if [ ! -d "$VENV" ]; then
-    echo "Creating Python virtual environment at $VENV..."
-    python3 -m venv "$VENV"
-    echo "Installing packages..."
-    "$VENV/bin/pip" install -q google-ads google-analytics-data google-analytics-admin google-api-python-client requests "mcp[cli]"
-    echo "Done."
-else
-    echo "Virtual environment already exists at $VENV"
-fi
+# 2. Create / refresh venv (installs requirements.txt; no-op when already up to date)
+echo "Ensuring Python virtual environment at $VENV..."
+bash "$SCRIPT_DIR/ensure-venv.sh"
+echo "Done."
 
 # 3. Config file
 if [ ! -f "$CONFIG" ]; then

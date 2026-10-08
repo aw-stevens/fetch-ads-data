@@ -90,7 +90,7 @@ totals, so this report can read slightly higher than the invoice. Note this when
 ## Monthly reporting
 
 Use `--group-by month` to get one row per `YYYY-MM` with `cost`, `clicks`, `conversions`,
-and `cpl`, which map directly into the monthly rows.
+and `cpl` — convenient for feeding a monthly spend/CPL report.
 
 ---
 

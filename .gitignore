@@ -1,3 +1,22 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Local environments
+.venv/
+venv/
+.env
+
+# Claude Code local (per-user) settings
+.claude/settings.local.json
+.claude/worktrees/
+
+# Never commit real credentials if copied into the repo (templates live in templates/)
+/config.json
+/google-ads.yaml
+/linkedin-ads.json
+/microsoft-ads.json
+/g2-digital-markets.json
+/google-search-console.json
+/google-tagmanager.json
+/application_default_credentials.json

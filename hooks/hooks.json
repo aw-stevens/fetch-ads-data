@@ -5,7 +5,7 @@
       "hooks": [{
         "type": "command",
         "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/ensure-venv.sh",
-        "timeout": 30
+        "timeout": 600
       }]
     }]
   }

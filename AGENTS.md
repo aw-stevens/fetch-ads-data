@@ -14,7 +14,7 @@ scripts/                         — Python scripts called by MCP tools
   config.py                      — Shared config loader (all scripts import this)
   google_ads/                    — query_ads.py, list_accounts.py
   google_analytics/              — query_ga.py, list_properties.py
-  google_tags/                   — query_google_tags.py, get_token.py
+  google_tags/                   — query_google_tags.py
   google_tag_manager/            — query_gtm.py, list_accounts.py, get_token.py
   google_search_console/         — query_gsc.py, get_token.py
   linkedin_ads/                  — query_li_ads.py, list_li_accounts.py, auth.py, get_token.py
