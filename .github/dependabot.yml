@@ -1,0 +1,7 @@
+version: 2
+updates:
+  # Keep the GitHub Actions used by CI up to date (Python deps in requirements.txt are unpinned).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

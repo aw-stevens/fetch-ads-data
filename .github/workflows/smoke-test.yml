@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# Read-only token for every job (fork PRs included); no job needs to write.
+permissions:
+  contents: read
+
 jobs:
   gitleaks:
     runs-on: ubuntu-latest

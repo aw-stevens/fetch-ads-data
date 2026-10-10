@@ -4,8 +4,11 @@ Pull live data from your ad platforms via API — works with any MCP-compatible 
 
 ## Install
 
+In Claude Code:
+
 ```
-/plugin add aw-stevens/fetch-ads-data
+/plugin marketplace add aw-stevens/fetch-ads-data
+/plugin install fetch-ads-data@fetch-ads-data
 ```
 
 ## Quick Setup
@@ -14,10 +17,11 @@ Pull live data from your ad platforms via API — works with any MCP-compatible 
 /fetch-ads-data-setup
 ```
 
-Or manually:
+Or manually. The commands in this README use `$PLUGIN_DIR`, the plugin's active install directory (Claude Code records it in `installed_plugins.json`):
 
 ```bash
-bash ~/.claude/plugins/cache/aw-stevens/fetch-ads-data/*/scripts/setup.sh
+PLUGIN_DIR=$(python3 -c 'import json, os; print(json.load(open(os.path.expanduser("~/.claude/plugins/installed_plugins.json")))["plugins"]["fetch-ads-data@fetch-ads-data"][0]["installPath"])')
+bash "$PLUGIN_DIR/scripts/setup.sh"
 ```
 
 The setup script creates a Python venv at `~/.fetch-ads-data/venv/`, copies config templates, and walks you through credential setup for each service.
@@ -193,7 +197,7 @@ The Google Tags tool queries GA4 property configuration (data streams, key event
 
 **Generate token:**
 ```bash
-~/.fetch-ads-data/venv/bin/python ~/.claude/plugins/cache/aw-stevens/fetch-ads-data/*/scripts/google_tag_manager/get_token.py
+~/.fetch-ads-data/venv/bin/python "$PLUGIN_DIR/scripts/google_tag_manager/get_token.py"
 ```
 
 This opens a browser for OAuth consent and saves credentials to `~/.fetch-ads-data/google-tagmanager.json`. Your Google account needs at least Read access to the GTM containers you want to query.
@@ -210,7 +214,7 @@ This opens a browser for OAuth consent and saves credentials to `~/.fetch-ads-da
 
 **Generate token:**
 ```bash
-~/.fetch-ads-data/venv/bin/python ~/.claude/plugins/cache/aw-stevens/fetch-ads-data/*/scripts/google_search_console/get_token.py
+~/.fetch-ads-data/venv/bin/python "$PLUGIN_DIR/scripts/google_search_console/get_token.py"
 ```
 
 This opens a browser for OAuth consent and saves credentials to `~/.fetch-ads-data/google-search-console.json`. Your Google account needs to be a verified owner or user of the Search Console properties you want to query.
@@ -238,7 +242,7 @@ This opens a browser for OAuth consent and saves credentials to `~/.fetch-ads-da
    ```
 2. Run the OAuth flow:
    ```bash
-   ~/.fetch-ads-data/venv/bin/python ~/.claude/plugins/cache/aw-stevens/fetch-ads-data/*/scripts/linkedin_ads/get_token.py
+   ~/.fetch-ads-data/venv/bin/python "$PLUGIN_DIR/scripts/linkedin_ads/get_token.py"
    ```
    This opens a browser, completes OAuth, and adds the `access_token` and `refresh_token` to the credential file.
 
@@ -257,7 +261,7 @@ This opens a browser for OAuth consent and saves credentials to `~/.fetch-ads-da
    ```
 2. Verify it works:
    ```bash
-   ~/.fetch-ads-data/venv/bin/python ~/.claude/plugins/cache/aw-stevens/fetch-ads-data/*/scripts/g2_digital_markets/query_g2.py --action verify
+   ~/.fetch-ads-data/venv/bin/python "$PLUGIN_DIR/scripts/g2_digital_markets/query_g2.py" --action verify
    ```
 
 The endpoint and auth method are configured in `config.json` under `g2_digital_markets`. The key is sent as a raw `Authorization` header (no `Bearer` prefix) — this is what the Click Report API expects. The `auth_in` (`header`/`query`) and `auth_param` settings let you adjust this if G2DM changes their scheme.
@@ -283,7 +287,7 @@ The endpoint and auth method are configured in `config.json` under `g2_digital_m
    ```
 2. Run the OAuth flow:
    ```bash
-   ~/.fetch-ads-data/venv/bin/python ~/.claude/plugins/cache/aw-stevens/fetch-ads-data/*/scripts/microsoft_ads/get_token.py
+   ~/.fetch-ads-data/venv/bin/python "$PLUGIN_DIR/scripts/microsoft_ads/get_token.py"
    ```
    This opens a browser; after consent you paste the redirect URL back, and the script adds the `refresh_token` and auto-detects your `customer_id`.
 
@@ -297,11 +301,12 @@ The scripts call the Microsoft Advertising **REST** API (v13) directly with `req
 
 The MCP server works in Claude Desktop without Claude Code. After completing credential setup above:
 
-1. Run the setup script directly to create the venv and config:
+1. Clone this repo and run the setup script from the repo root to create the venv and config:
    ```bash
-   bash ~/.claude/plugins/cache/aw-stevens/fetch-ads-data/*/scripts/setup.sh
+   git clone https://github.com/aw-stevens/fetch-ads-data.git
+   cd fetch-ads-data && bash scripts/setup.sh
    ```
-   Or clone the repo and run `bash scripts/setup.sh` from the repo root.
+   (If you also use Claude Code, `bash "$PLUGIN_DIR/scripts/setup.sh"` works too.)
 
 2. Add to your `claude_desktop_config.json`:
    ```json
