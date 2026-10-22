@@ -108,7 +108,24 @@ else
     echo "Paste the API key (from your G2DM account manager) into $G2_CREDS"
 fi
 
-# 10. Discover accounts
+# 10. DataForSEO credentials (env vars or credential file)
+DFS_CREDS="$CONFIG_DIR/dataforseo.json"
+echo ""
+echo "--- DataForSEO (keyword volume + SERP) ---"
+if [ -n "$DATAFORSEO_LOGIN" ] && [ -n "$DATAFORSEO_PASSWORD" ]; then
+    echo "Using DATAFORSEO_LOGIN / DATAFORSEO_PASSWORD from the environment"
+elif [ -f "$DFS_CREDS" ]; then
+    echo "DataForSEO credentials found at $DFS_CREDS"
+else
+    echo "Creating credentials template at $DFS_CREDS"
+    cp "$PLUGIN_ROOT/templates/dataforseo.json.template" "$DFS_CREDS"
+    chmod 600 "$DFS_CREDS"
+    echo "Paste your API login/password (https://app.dataforseo.com/api-access) into $DFS_CREDS,"
+    echo "or set DATAFORSEO_LOGIN / DATAFORSEO_PASSWORD instead."
+fi
+echo "Daily spend cap defaults to \$1.00 — change dataforseo.daily_cap_usd in $CONFIG."
+
+# 11. Discover accounts
 echo ""
 echo "--- Discovering accounts ---"
 echo ""
@@ -126,6 +143,10 @@ echo "Google Tag Manager accounts:"
 echo ""
 echo "G2 Digital Markets API:"
 "$VENV/bin/python" "$SCRIPT_DIR/g2_digital_markets/query_g2.py" --action verify 2>/dev/null || echo "  (could not verify — add your API key to $G2_CREDS)"
+
+echo ""
+echo "DataForSEO API:"
+"$VENV/bin/python" "$SCRIPT_DIR/dataforseo/verify.py" 2>/dev/null || echo "  (could not verify — add your API login/password to $DFS_CREDS)"
 
 echo ""
 echo "Microsoft Advertising accounts:"

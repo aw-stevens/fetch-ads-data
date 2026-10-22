@@ -1,5 +1,5 @@
 """
-Ad Analytics MCP Server — single server exposing all 16 tools.
+Ad Analytics MCP Server — single server exposing all 19 tools.
 
 Google Ads: google_ads_query, google_ads_list_accounts
 Google Analytics: google_analytics_query, google_analytics_realtime
@@ -9,6 +9,7 @@ Google Search Console: google_search_console_query, google_search_console_list_s
 LinkedIn Ads: linkedin_ads_query, linkedin_ads_list_accounts
 G2 Digital Markets: g2_digital_markets_query, g2_digital_markets_verify
 Microsoft Advertising: microsoft_ads_query, microsoft_ads_list_accounts
+DataForSEO: dataforseo_keyword_volume, dataforseo_serp, dataforseo_verify
 """
 
 import json
@@ -579,6 +580,106 @@ def g2_digital_markets_verify() -> str:
         str(SCRIPTS / "g2_digital_markets" / "query_g2.py"),
         "--action", "verify",
     ])
+
+
+# --- DataForSEO (keyword volume + SERP) ---
+# Paid API: each call is checked against a local daily spend cap before it is sent.
+
+@mcp.tool(
+    name="dataforseo_keyword_volume",
+    annotations={"readOnlyHint": True, "openWorldHint": True},
+)
+def dataforseo_keyword_volume(
+    keywords: list[str],
+    location_code: int = 0,
+    language_code: str = "",
+    dry_run: bool = False,
+    format: str = "table",
+) -> str:
+    """Get Google Ads keyword search volume via DataForSEO — average monthly searches, CPC,
+    competition (LOW/MEDIUM/HIGH + 0-100 index), top-of-page bid range, and monthly trend.
+
+    Costs money: billed per request of up to 700 keywords (one keyword costs the same as
+    700), so batch keywords into one call. Refused if it would exceed the daily spend cap.
+
+    Args:
+        keywords: Keywords to look up (e.g. ["crm software", "email marketing tool"]).
+            Max 80 characters / 10 words each, up to 10,000 per call. Duplicates are dropped.
+        location_code: DataForSEO location code. 0 (default) uses the config default or
+            2840 (United States). Others: 2826 UK, 2124 Canada, 2036 Australia.
+        language_code: Language code. Empty (default) uses the config default or "en".
+        dry_run: When true, returns the request bodies and projected cost without calling
+            the API or spending anything.
+        format: Output format — 'table' (default), 'csv', or 'json'.
+    """
+    cmd = [VENV_PYTHON, str(SCRIPTS / "dataforseo" / "query_volume.py"), "--format", format]
+    if location_code:
+        cmd += ["--location-code", str(location_code)]
+    if language_code:
+        cmd += ["--language-code", language_code]
+    if dry_run:
+        cmd += ["--dry-run"]
+    return _run(cmd + ["--", *keywords])  # "--" so a keyword starting with "-" isn't a flag
+
+
+@mcp.tool(
+    name="dataforseo_serp",
+    annotations={"readOnlyHint": True, "openWorldHint": True},
+)
+def dataforseo_serp(
+    queries: list[str] = [],
+    mode: str = "standard",
+    location_code: int = 0,
+    language_code: str = "",
+    device: str = "desktop",
+    depth: int = 10,
+    task_ids: list[str] = [],
+    dry_run: bool = False,
+    format: str = "table",
+) -> str:
+    """Fetch Google search results pages via DataForSEO: paid ads (advertiser domain,
+    ad title/description, position, top/bottom placement), organic results, People Also
+    Ask questions, related searches, and other SERP features. Use it to see who advertises
+    or ranks on a query.
+
+    Costs money: billed per query per 10 results. Refused if it would exceed the daily
+    spend cap.
+
+    Args:
+        queries: Search queries (e.g. ["crm software"]). Up to 100 per call.
+        mode: 'standard' (default — cheapest, queued, can take several minutes),
+            'priority' (~2x price, usually under a minute), or 'live' (~3x price, seconds).
+        location_code: DataForSEO location code. 0 (default) uses the config default or
+            2840 (United States).
+        language_code: Language code. Empty (default) uses the config default or "en".
+        device: 'desktop' (default) or 'mobile'.
+        depth: Number of results, 10-100 (default 10). Each extra 10 is billed again.
+        task_ids: Task IDs from an earlier call that timed out while queued. When set,
+            collects those results instead of posting new queries (no charge).
+        dry_run: When true, returns the task bodies and projected cost without calling the API.
+        format: Output format — 'table' (default), 'csv', or 'json'.
+    """
+    cmd = [VENV_PYTHON, str(SCRIPTS / "dataforseo" / "query_serp.py"), "--format", format]
+    if task_ids:
+        return _run(cmd + ["--task-ids", *task_ids])
+    cmd += ["--mode", mode, "--device", device, "--depth", str(depth)]
+    if location_code:
+        cmd += ["--location-code", str(location_code)]
+    if language_code:
+        cmd += ["--language-code", language_code]
+    if dry_run:
+        cmd += ["--dry-run"]
+    return _run(cmd + ["--", *queries])
+
+
+@mcp.tool(
+    name="dataforseo_verify",
+    annotations={"readOnlyHint": True, "openWorldHint": True},
+)
+def dataforseo_verify() -> str:
+    """Verify DataForSEO credentials (free call) and show the account balance plus today's
+    spend through this plugin against the daily cap."""
+    return _run([VENV_PYTHON, str(SCRIPTS / "dataforseo" / "verify.py")])
 
 
 if __name__ == "__main__":

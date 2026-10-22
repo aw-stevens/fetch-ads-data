@@ -35,5 +35,11 @@
     "base_url": "https://public-api.capterra.com/v2",
     "auth_in": "header",
     "auth_param": "Authorization"
+  },
+  "dataforseo": {
+    "credentials": "~/.fetch-ads-data/dataforseo.json",
+    "daily_cap_usd": 1.0,
+    "default_location_code": 2840,
+    "default_language_code": "en"
   }
 }
