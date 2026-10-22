@@ -633,14 +633,18 @@ def dataforseo_serp(
     language_code: str = "",
     device: str = "desktop",
     depth: int = 10,
+    ads_test: bool = False,
     task_ids: list[str] = [],
     dry_run: bool = False,
     format: str = "table",
 ) -> str:
-    """Fetch Google search results pages via DataForSEO: paid ads (advertiser domain,
-    ad title/description, position, top/bottom placement), organic results, People Also
-    Ask questions, related searches, and other SERP features. Use it to see who advertises
-    or ranks on a query.
+    """Fetch Google search results pages via DataForSEO: organic results, People Also Ask
+    questions, related searches, other SERP features, and any paid ads captured (advertiser
+    domain, ad title/description, position, top/bottom placement).
+
+    Ads are often missing from normal fetches, even on heavily advertised queries. To see
+    who advertises, set ads_test=true (organic urls/domains are then blank, so use a
+    separate call for organic). A SERP is one sample: no ads does not mean nobody bids.
 
     Costs money: billed per query per 10 results. Refused if it would exceed the daily
     spend cap.
@@ -654,6 +658,8 @@ def dataforseo_serp(
         language_code: Language code. Empty (default) uses the config default or "en".
         device: 'desktop' (default) or 'mobile'.
         depth: Number of results, 10-100 (default 10). Each extra 10 is billed again.
+        ads_test: Send Google's adtest=on flag so ads are captured more often (same price).
+            Organic results come back without url/domain in this mode.
         task_ids: Task IDs from an earlier call that timed out while queued. When set,
             collects those results instead of posting new queries (no charge).
         dry_run: When true, returns the task bodies and projected cost without calling the API.
@@ -663,6 +669,8 @@ def dataforseo_serp(
     if task_ids:
         return _run(cmd + ["--task-ids", *task_ids])
     cmd += ["--mode", mode, "--device", device, "--depth", str(depth)]
+    if ads_test:
+        cmd += ["--ads-test"]
     if location_code:
         cmd += ["--location-code", str(location_code)]
     if language_code:

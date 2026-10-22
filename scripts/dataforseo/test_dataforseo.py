@@ -10,6 +10,8 @@ Run:
     python scripts/dataforseo/test_dataforseo.py
 """
 
+import contextlib
+import io
 import json
 import os
 import sys
@@ -76,6 +78,19 @@ def test_credentials_env_wins_and_file_fallback():
                 assert "DATAFORSEO_LOGIN" in str(exc)
             else:
                 raise AssertionError("expected DataForSeoError")
+
+
+def test_credentials_default_path_without_config_section():
+    # Configs created before this service existed have no dataforseo.credentials entry.
+    with tempfile.TemporaryDirectory() as tmp:
+        default = Path(tmp) / "dataforseo.json"
+        default.write_text(json.dumps({"login": "e", "password": "f"}))
+        (Path(tmp) / "config.json").write_text(json.dumps({"google_ads": {}}))
+        env = {k: v for k, v in os.environ.items() if not k.startswith("DATAFORSEO_")}
+        with mock.patch.dict(os.environ, env, clear=True), \
+                mock.patch.object(dfs.config, "CONFIG_FILE", Path(tmp) / "config.json"), \
+                mock.patch.object(dfs, "DEFAULT_CREDS", default):
+            assert dfs.load_credentials() == ("e", "f")
 
 
 def test_auth_header():
@@ -253,6 +268,27 @@ def test_parse_serp_edge_cases():
     # related searches given as objects instead of strings
     obj = query_serp.parse_serp({"items": [{"type": "related_searches", "items": [{"title": "x"}]}]})
     assert obj["related_searches"] == ["x"]
+
+
+def test_ads_test_mode():
+    task = query_serp.build_tasks(["a"], 2840, "en", "desktop", 10, "live", ads_test=True)[0]
+    assert task["search_param"] == "adtest=on"
+    assert "search_param" not in query_serp.build_tasks(["a"], 2840, "en", "desktop", 10, "live")[0]
+    # Detected from the echoed request, or from check_url when collecting by task id.
+    assert query_serp.parse_serp({}, {"search_param": "adtest=on"})["ads_test"] is True
+    assert query_serp.parse_serp({"check_url": "https://www.google.com/search?q=a&adtest=on"})["ads_test"] is True
+    assert query_serp.parse_serp(SERP_RESULT)["ads_test"] is False
+
+
+def test_table_never_claims_no_advertisers():
+    for params, hint in (({}, True), ({"search_param": "adtest=on"}, False)):
+        r = query_serp.parse_serp({"keyword": "q", "items": []}, params)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            query_serp.print_tables([r])
+        text = buf.getvalue()
+        assert "No ads captured in this fetch" in text and "No ads shown" not in text
+        assert ("ads test mode to capture ads" in text) is hint
 
 
 def test_serp_cost_projection():

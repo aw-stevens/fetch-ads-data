@@ -2,8 +2,13 @@
 """
 Google organic SERP results via DataForSEO (SERP API, advanced result type).
 
-For each query returns the paid ads (who is advertising, ad copy, top/bottom placement),
-organic results, People Also Ask questions, related searches, and other SERP features.
+For each query returns organic results, People Also Ask questions, related searches, other
+SERP features, and any paid ads captured (advertiser domain, ad copy, top/bottom placement).
+
+Ads: DataForSEO's crawler is often served no ads, even on heavily advertised queries.
+--ads-test sends Google's test-ad flag (adtest=on), which captures ads more often, though
+still not every time, and returns organic results without url/domain — run it as a separate
+call when ads matter. Either way a SERP is one sample: no ads does not mean nobody bids.
 
 Modes:
     standard  Standard Queue: task_post, then poll task_get (cheapest; minutes)
@@ -14,6 +19,9 @@ Usage:
     python query_serp.py "crm software" "email marketing tool"
     python query_serp.py "crm software" --mode live --device mobile --format json
     python query_serp.py --file queries.txt --dry-run
+
+    # Who is advertising (organic urls/domains will be blank in this mode)
+    python query_serp.py "crm software" --mode live --ads-test
 
     # Collect results for tasks that were posted earlier but timed out (free)
     python query_serp.py --task-ids 01234567-89ab-cdef-0123-456789abcdef
@@ -64,13 +72,17 @@ def clean_queries(raw: list[str]) -> list[str]:
 
 
 def build_tasks(queries: list[str], location_code: int, language_code: str,
-                device: str, depth: int, mode: str) -> list[dict]:
+                device: str, depth: int, mode: str, ads_test: bool = False) -> list[dict]:
     tasks = []
     for q in queries:
         task = {"keyword": q, "location_code": location_code, "language_code": language_code,
                 "device": device, "depth": depth}
         if mode == "priority":
             task["priority"] = 2
+        if ads_test:
+            # Google's test-ad flag: ads are captured more often (no real impressions are
+            # logged), but organic results come back without url/domain.
+            task["search_param"] = "adtest=on"
         tasks.append(task)
     return tasks
 
@@ -157,6 +169,8 @@ def parse_serp(raw: dict, params: dict | None = None) -> dict:
         "location_code": raw.get("location_code") or params.get("location_code"),
         "language_code": raw.get("language_code") or params.get("language_code"),
         "device": params.get("device") or "desktop",
+        "ads_test": "adtest=on" in (params.get("search_param") or "")
+                    or "adtest=on" in (raw.get("check_url") or ""),
         "total_results": _int(raw.get("se_results_count")),
         "item_types": raw.get("item_types") or [],
         "paid": paid,
@@ -243,9 +257,11 @@ def print_tables(rows: list[dict]) -> None:
                 ["position", "placement", "domain", "title", "description"],
             )
         else:
-            print("No ads shown for this query.")
+            hint = "" if r["ads_test"] else " Re-run with ads test mode to capture ads more reliably."
+            print("No ads captured in this fetch — not proof that nobody bids on this query." + hint)
 
-        print(f"\nOrganic ({len(r['organic'])})")
+        print(f"\nOrganic ({len(r['organic'])})"
+              + (" — ads test mode: urls/domains are not returned" if r["ads_test"] else ""))
         dfs.print_table([{**o, "title": _short(o["title"], 70)} for o in r["organic"]],
                         ["position", "domain", "title", "url"])
 
@@ -318,6 +334,9 @@ def main():
     parser.add_argument("--language-code", default=None, help="Language code (default: config or 'en')")
     parser.add_argument("--device", default="desktop", choices=["desktop", "mobile"],
                         help="Device to emulate (default: desktop)")
+    parser.add_argument("--ads-test", action="store_true",
+                        help="Send Google's adtest=on flag to capture paid ads more reliably. Organic "
+                             "results then come back without url/domain. Same price.")
     parser.add_argument("--depth", type=int, default=10,
                         help="Results to fetch, 10-100 (default: 10). Billed per 10.")
     parser.add_argument("--poll-interval", type=float, default=10, help="Seconds between polls (queued modes)")
@@ -345,7 +364,7 @@ def main():
         queries = clean_queries(raw)
         location = args.location_code or dfs.default_location_code()
         language = args.language_code or dfs.default_language_code()
-        tasks = build_tasks(queries, location, language, args.device, args.depth, args.mode)
+        tasks = build_tasks(queries, location, language, args.device, args.depth, args.mode, args.ads_test)
         tracker = dfs.SpendTracker()
         projected = projected_cost(len(queries), args.depth, args.mode)
 
@@ -353,6 +372,7 @@ def main():
             print(json.dumps({
                 "dry_run": True,
                 "mode": args.mode,
+                "ads_test": args.ads_test,
                 "endpoint": LIVE if args.mode == "live" else TASK_POST,
                 "query_count": len(queries),
                 "billed_pages_per_query": dfs.serp_pages(args.depth),

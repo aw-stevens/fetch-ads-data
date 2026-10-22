@@ -36,6 +36,7 @@ NO_RESULTS = 40102
 IN_PROGRESS = (40601, 40602)  # task handed / in queue — keep polling
 
 DEFAULT_CAP_USD = 1.0
+DEFAULT_CREDS = Path.home() / ".fetch-ads-data" / "dataforseo.json"
 DEFAULT_COST_DIR = Path.home() / ".fetch-ads-data" / "dataforseo-costs"
 DEFAULT_LOCATION_CODE = 2840  # United States
 DEFAULT_LANGUAGE_CODE = "en"
@@ -97,8 +98,9 @@ def load_credentials() -> tuple[str, str]:
     if login and password:
         return login, password
 
-    creds_path = config.credentials_path(SERVICE) if config.CONFIG_FILE.exists() else ""
-    if creds_path and Path(creds_path).exists():
+    # Fall back to the default path so configs created before this service existed still work.
+    creds_path = (config.credentials_path(SERVICE) if config.CONFIG_FILE.exists() else "") or str(DEFAULT_CREDS)
+    if Path(creds_path).exists():
         data = json.loads(Path(creds_path).read_text())
         login = str(data.get("login", "")).strip()
         password = str(data.get("password", "")).strip()

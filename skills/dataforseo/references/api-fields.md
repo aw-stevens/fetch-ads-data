@@ -38,7 +38,7 @@ variants, so near-duplicate keywords can return identical volumes.
 Per query: `query`, `location_code`, `language_code`, `device`, `total_results`,
 `item_types` (every block type on the page, in order), plus:
 
-**paid** (ads)
+**paid** (ads — often empty; see "Ad coverage" below)
 
 | Field | Description |
 |---|---|
@@ -51,6 +51,9 @@ Per query: `query`, `location_code`, `language_code`, `device`, `total_results`,
 | `sitelinks` | Number of sitelink extensions |
 
 **organic**: `position`, `rank_absolute`, `domain`, `title`, `url`, `description`
+(`domain`/`url` are null in ads test mode)
+
+`ads_test` is `true` when the result was fetched with `adtest=on`.
 
 **people_also_ask**: question titles. **related_searches**: query strings.
 
@@ -61,6 +64,21 @@ Per query: `query`, `location_code`, `language_code`, `device`, `total_results`,
 CSV output is one row per element: `query, section, position, rank_absolute, placement,
 domain, title, url, description` where `section` is `paid`, `organic`, `people_also_ask`,
 `related_search`, or a feature type.
+
+## Ad coverage
+
+Google often serves no ads to DataForSEO's crawler, so `paid` is frequently empty even on
+queries that show several ads to people. `--ads-test` / `ads_test` adds
+`"search_param": "adtest=on"` to the task — Google's test-ad flag, which logs no real
+impressions and returns ads more often (same price). Side effects: organic items come back
+without `url`/`domain`, `total_results` is unreliable, and some other SERP features may be
+incomplete. DataForSEO also
+suggests narrowing location to a city, though that did not reliably surface ads in testing.
+
+Background: https://dataforseo.com/help-center/getting-more-consistent-ad-results-in-google-serp-api
+
+For ads by advertiser (rather than by query), DataForSEO's separate Google Ads Search API
+(Ads Transparency Center data) is the better source; it is not wrapped by this plugin.
 
 ## Common location codes
 

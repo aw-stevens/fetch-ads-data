@@ -40,7 +40,7 @@ The setup script creates a Python venv at `~/.fetch-ads-data/venv/`, copies conf
 | **linkedin-ads** | LinkedIn Ads analytics. Campaigns, demographics, spend, conversions. |
 | **g2-digital-markets** | G2 Digital Markets Click Report — PPC clicks, cost, conversions, CPL across Capterra, GetApp, Software Advice. |
 | **microsoft-ads** | Microsoft Advertising (Bing Ads). Account/campaign spend, clicks, impressions, conversions, monthly. |
-| **dataforseo** | Market-level search data via DataForSEO — keyword search volume/CPC/competition, and live Google SERPs including who is advertising. |
+| **dataforseo** | Market-level search data via DataForSEO — keyword search volume/CPC/competition, and live Google SERPs (organic, PAA, features, plus sampled paid ads). |
 
 ### MCP Tools (19)
 
@@ -63,7 +63,7 @@ The setup script creates a Python venv at `~/.fetch-ads-data/venv/`, copies conf
 | `microsoft_ads_query` | Query Microsoft Advertising (Bing Ads) performance reports |
 | `microsoft_ads_list_accounts` | List Microsoft Advertising accounts |
 | `dataforseo_keyword_volume` | Google keyword search volume, CPC, competition, monthly trend (paid; daily cap) |
-| `dataforseo_serp` | Google SERP: paid ads (advertiser, copy, top/bottom), organic, People Also Ask, related searches, features (paid; daily cap) |
+| `dataforseo_serp` | Google SERP: organic, People Also Ask, related searches, features; opt-in ads test mode to sample paid ads (paid; daily cap) |
 | `dataforseo_verify` | Verify DataForSEO credentials; show balance and today's spend vs cap |
 
 Skills trigger automatically in Claude Code based on what you ask. MCP tools are available in both Claude Code and Claude Desktop.
@@ -334,6 +334,8 @@ The scripts call the Microsoft Advertising **REST** API (v13) directly with `req
 ```
 
 **Cost control:** DataForSEO bills per request. Every billed call is checked against a local **daily spend cap** (default **$1.00/day**, UTC) and refused if it would go over; actual charges are logged to `~/.fetch-ads-data/dataforseo-costs/`. Change it with `dataforseo.daily_cap_usd` in `config.json` or `DATAFORSEO_DAILY_CAP_USD`. Both tools accept `dry_run` to preview requests and projected cost. Approximate rates (check [DataForSEO pricing](https://dataforseo.com/pricing) for current ones): keyword volume ~$0.09 per request of up to 700 keywords; SERP ~$0.0006 (standard queue), ~$0.0012 (priority), ~$0.002 (live) per query per 10 results. See `skills/dataforseo/references/setup.md`.
+
+**Ad coverage:** Google often serves no ads to DataForSEO's crawler, so normal SERP fetches usually have an empty `paid` list. Use `ads_test` (Google's `adtest=on` flag) to capture ads more often; organic URLs/domains are blank in that mode. Treat ad results as a sample, not a complete list of who bids.
 
 **Credential file:** `~/.fetch-ads-data/dataforseo.json` (created manually), or env vars
 

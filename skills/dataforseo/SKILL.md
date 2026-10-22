@@ -1,6 +1,6 @@
 ---
 name: dataforseo
-description: Look up Google keyword search volume and live Google search results pages via DataForSEO. Use when asked about keyword search volume, monthly search trends, keyword CPC or competition, keyword research or sizing, who is advertising on a search term, competitor ads and ad copy on Google, who ranks organically for a query, People Also Ask questions, related searches, or SERP features. Paid API — every call is checked against a daily spend cap.
+description: Look up Google keyword search volume and live Google search results pages via DataForSEO. Use when asked about keyword search volume, monthly search trends, keyword CPC or competition, keyword research or sizing, who ranks organically for a query, which advertisers and ad copy appear on a search term (sampled — see ad coverage caveats), People Also Ask questions, related searches, or SERP features. Paid API — every call is checked against a daily spend cap.
 ---
 
 # DataForSEO (Keyword Volume + SERP)
@@ -10,7 +10,8 @@ Market-level search data for any keyword or query — not tied to your own ad ac
 | Need | Tool / script |
 |---|---|
 | Search volume, CPC, competition, monthly trend for keywords | `dataforseo_keyword_volume` / `query_volume.py` |
-| Who advertises on a query (ads, copy, top/bottom), who ranks organically, PAA, related searches, SERP features | `dataforseo_serp` / `query_serp.py` |
+| Who ranks organically, PAA, related searches, SERP features | `dataforseo_serp` / `query_serp.py` |
+| Sample which ads appear on a query (advertiser, copy, top/bottom) | `dataforseo_serp` with `ads_test` / `query_serp.py --ads-test` |
 | Check credentials, account balance, today's spend vs cap | `dataforseo_verify` / `verify.py` |
 
 **Use another skill instead** for your own performance data: your site's organic queries and
@@ -86,6 +87,7 @@ Keywords with too little volume come back with null metrics.
 - positional queries and/or `--file`. Up to 100 per run.
 - `--mode` — `standard` (default, cheapest; queued, often a few minutes), `priority` (~2x, usually <1 min), `live` (~3x, seconds). Prefer `live` or `priority` when the user is waiting on one or two queries.
 - `--device` — `desktop` (default) or `mobile`; ads and layout differ by device
+- `--ads-test` — capture paid ads more reliably (same price); organic `url`/`domain` come back empty. See below.
 - `--depth` — 10–100 results (default 10)
 - `--location-code`, `--language-code` — as above
 - `--poll-interval` / `--timeout` — queued modes (defaults 10 s / 300 s)
@@ -93,15 +95,29 @@ Keywords with too little volume come back with null metrics.
 - `--dry-run`, `--format`
 
 Returns per query:
-- **paid** — `position` (ad rank), `placement` (`top`/`bottom`, derived from where the ad sits relative to the first organic result), `domain`, `title`, `description`, `url`, `breadcrumb`, `sitelinks` count
-- **organic** — `position`, `domain`, `title`, `url`, `description`
+- **organic** — `position`, `domain`, `title`, `url`, `description` (`domain`/`url` empty in ads test mode)
+- **paid** — any ads captured: `position` (ad rank), `placement` (`top`/`bottom`, derived from where the ad sits relative to the first organic result), `domain`, `title`, `description`, `url`, `breadcrumb`, `sitelinks` count
 - **people_also_ask** — question strings
 - **related_searches** — query strings
 - **serp_features** — other blocks (featured snippet, AI overview, local pack, video, etc.) with absolute rank
-- `item_types`, `total_results`
+- `item_types`, `total_results`, `ads_test`
 
-A SERP is a single snapshot: ads rotate by time, location, and device, so "no ads" on one
-fetch doesn't mean nobody bids on the term. Say so when reporting advertiser presence.
+### Ad coverage — set expectations
+
+DataForSEO's crawler is frequently served **no ads**, even on heavily advertised queries, so a
+normal fetch usually returns an empty `paid` list. This is how Google serves ads to automated
+requests, not a parsing problem.
+
+- For "who is advertising on X" questions, use **ads test mode** (`ads_test` / `--ads-test`). It
+  sends Google's `adtest=on` flag, which records no real ad impressions and captures ads more
+  often — but still not every time.
+- Ads test mode strips `url`/`domain` from organic results. If the user needs both, make two
+  calls: one normal (organic) and one in ads test mode (ads).
+- Every SERP is one sample; ads rotate by time, location, device, and budget. **Never report
+  "no one advertises on X"** from an empty result — say no ads were captured in that fetch.
+  For a fuller picture, sample a few times, on both devices, and report which advertisers
+  appeared and how often.
+- Google Shopping ads show up as a `shopping` SERP feature, not in `paid`.
 
 ---
 
@@ -112,9 +128,10 @@ fetch doesn't mean nobody bids on the term. Say so when reporting advertiser pre
 query_volume.py --file keywords.txt --format csv
 ```
 
-**Who advertises on these terms, on mobile, right now:**
+**Sample which ads appear on these terms (desktop and mobile):**
 ```bash
-query_serp.py "crm software" "sales pipeline software" --mode live --device mobile
+query_serp.py "crm software" "sales pipeline software" --mode live --ads-test
+query_serp.py "crm software" "sales pipeline software" --mode live --ads-test --device mobile
 ```
 
 **Content brief inputs (PAA + related searches) for a topic, as JSON:**
