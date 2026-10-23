@@ -2,7 +2,7 @@
 
 ## Overview
 
-Claude Code plugin providing Google Ads, Google Analytics (GA4), Google Tags, Google Tag Manager, Google Search Console, LinkedIn Ads, G2 Digital Markets, Microsoft Advertising (Bing Ads), and DataForSEO (keyword volume + SERP) querying via 9 skills and 19 MCP tools. Installed as a marketplace from `aw-stevens/fetch-ads-data`.
+Claude Code plugin providing Google Ads, Google Analytics (GA4), Google Tags, Google Tag Manager, Google Search Console, LinkedIn Ads, G2 Digital Markets, Microsoft Advertising (Bing Ads), and DataForSEO (keyword volume, SERP, Ads Transparency) querying via 9 skills and 21 MCP tools. Installed as a marketplace from `aw-stevens/fetch-ads-data`.
 
 ## Architecture
 
@@ -20,8 +20,8 @@ scripts/                         — Python scripts called by MCP tools
   linkedin_ads/                  — query_li_ads.py, list_li_accounts.py, auth.py, get_token.py
   g2_digital_markets/            — query_g2.py (Click Report; API-key auth)
   microsoft_ads/                 — query_ms_ads.py, list_accounts.py, auth.py, get_token.py
-  dataforseo/                    — query_volume.py, query_serp.py, verify.py, client.py (auth, polling, spend cap)
-mcp/server.py                    — Single FastMCP server, all 19 tools (subprocess pattern)
+  dataforseo/                    — query_volume.py, query_serp.py, query_ads_search.py, query_ads_advertisers.py, verify.py, client.py (auth, polling, spend cap)
+mcp/server.py                    — Single FastMCP server, all 21 tools (subprocess pattern)
 hooks/hooks.json                 — SessionStart hook to ensure venv exists
 commands/                        — /fetch-ads-data-setup slash command
 templates/                       — Config and credential templates
@@ -29,7 +29,7 @@ templates/                       — Config and credential templates
 
 ## Key Design Decisions
 
-- **Single MCP server** — All 19 tools in one FastMCP process. Tools call scripts via subprocess.
+- **Single MCP server** — All 21 tools in one FastMCP process. Tools call scripts via subprocess.
 - **Config-driven** — All account IDs, credential paths, and defaults live in `~/.fetch-ads-data/config.json`, not hardcoded.
 - **Stable venv** — Python venv at `~/.fetch-ads-data/venv/` persists across plugin updates. Scripts reference it by absolute path.
 - **`${CLAUDE_PLUGIN_ROOT}`** — Used in SKILL.md and .mcp.json to resolve paths within the plugin cache (changes on update). Never used for the venv or config paths.

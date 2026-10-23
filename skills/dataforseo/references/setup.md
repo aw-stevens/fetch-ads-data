@@ -49,7 +49,7 @@ Optional settings in `~/.fetch-ads-data/config.json`:
 ```
 
 - `daily_cap_usd` — daily spend cap (UTC day). Default `1.0`. Env override: `DATAFORSEO_DAILY_CAP_USD`. `0` blocks all billed calls.
-- `default_location_code` / `default_language_code` — used when a call doesn't pass them. Default `2840` (United States) / `en`.
+- `default_location_code` / `default_language_code` — used when a call doesn't pass them (the Ads Transparency tools use the location only, and `--all-locations` skips it). Default `2840` (United States) / `en`.
 - `cost_log_dir` — where daily tallies are written. Default `~/.fetch-ads-data/dataforseo-costs/`. Env override: `DATAFORSEO_COST_LOG_DIR`.
 - `pricing` — override the per-unit rates used for *projections* if DataForSEO changes prices:
   ```json
@@ -57,9 +57,16 @@ Optional settings in `~/.fetch-ads-data/config.json`:
     "search_volume_live_per_task": 0.09,
     "serp_standard_per_page": 0.0006,
     "serp_priority_per_page": 0.0012,
-    "serp_live_per_page": 0.002
+    "serp_live_per_page": 0.002,
+    "ads_search_standard_per_page": 0.0006,
+    "ads_search_priority_per_page": 0.0012,
+    "ads_search_live_per_page": 0.002,
+    "ads_advertisers_standard_per_task": 0.0006,
+    "ads_advertisers_priority_per_task": 0.0012,
+    "ads_advertisers_live_per_task": 0.002
   }
   ```
+  A SERP page is 10 results for organic SERPs and 40 ads for Ads Search.
   Current rates: https://dataforseo.com/pricing
 
 ## How the spend cap works

@@ -49,6 +49,12 @@ PRICING = {
     "serp_standard_per_page": 0.0006,       # per SERP page of 10 results
     "serp_priority_per_page": 0.0012,
     "serp_live_per_page": 0.002,
+    "ads_search_standard_per_page": 0.0006,     # per task per 40 ads (Ads Transparency)
+    "ads_search_priority_per_page": 0.0012,
+    "ads_search_live_per_page": 0.002,
+    "ads_advertisers_standard_per_task": 0.0006,
+    "ads_advertisers_priority_per_task": 0.0012,
+    "ads_advertisers_live_per_task": 0.002,
 }
 
 
@@ -85,9 +91,10 @@ def chunk(items: list, size: int) -> list[list]:
     return [items[i:i + size] for i in range(0, len(items), size)]
 
 
-def serp_pages(depth: int) -> int:
-    """SERPs are billed per page of 10 results; depth rounds up to the next ten."""
-    return max(1, math.ceil(depth / 10))
+def serp_pages(depth: int, page_size: int = 10) -> int:
+    """SERPs are billed per page of results (10 for organic, 40 for ads search);
+    depth rounds up to the next full page."""
+    return max(1, math.ceil(depth / page_size))
 
 
 # --- Credentials ---
@@ -169,10 +176,12 @@ def task_ok(task: dict, accept=(OK,)) -> None:
 
 
 def poll_tasks(client: Client, endpoint_for, task_ids: list[str], interval: float = 10,
-               timeout: float = 300, sleep=time.sleep, now=time.monotonic) -> tuple[dict, dict, list]:
+               timeout: float = 300, sleep=time.sleep, now=time.monotonic,
+               empty_ok: bool = False) -> tuple[dict, dict, list]:
     """Poll Standard Queue tasks until each has a result, failed, or the timeout passes.
 
-    Retrieving results (task_get) is free; only task_post is billed. Returns
+    Retrieving results (task_get) is free; only task_post is billed. With empty_ok, a
+    "No Search Results" task counts as done (an empty answer) rather than an error. Returns
     (results: {id: task}, errors: {id: message}, pending: [ids still queued]).
     """
     pending = list(task_ids)
@@ -190,7 +199,7 @@ def poll_tasks(client: Client, endpoint_for, task_ids: list[str], interval: floa
             status = task.get("status_code")
             if status in IN_PROGRESS or (status == OK and task.get("result") is None):
                 still.append(tid)
-            elif status == OK:
+            elif status == OK or (empty_ok and status == NO_RESULTS):
                 results[tid] = task
             else:
                 errors[tid] = f"{task.get('status_message', 'unknown')} (status_code={status})"
@@ -199,6 +208,33 @@ def poll_tasks(client: Client, endpoint_for, task_ids: list[str], interval: floa
             break
         sleep(interval)
     return results, errors, pending
+
+
+def post_queued(client: Client, tracker: "SpendTracker", endpoint: str, tasks: list[dict],
+                labels: list[str], projected: float, operation: str) -> tuple[list[str], dict]:
+    """Post Standard Queue tasks in one billed request (cap checked first, actual cost
+    recorded after). Returns (created task ids, {label: error} for tasks not created)."""
+    tracker.check(projected)
+    payload = client.post(endpoint, tasks)
+    tracker.record(operation, len(tasks), response_cost(payload, projected))
+    posted = payload.get("tasks") or []
+    ids, errors = [], {}
+    for i, label in enumerate(labels):
+        t = posted[i] if i < len(posted) else {}
+        if t.get("status_code") == TASK_CREATED and t.get("id"):
+            ids.append(t["id"])
+        else:
+            errors[label] = f"{t.get('status_message', 'task not created')} (status_code={t.get('status_code')})"
+    return ids, errors
+
+
+def post_live(client: Client, tracker: "SpendTracker", endpoint: str, task: dict,
+              projected: float, operation: str) -> dict:
+    """Send one Live task (cap checked first, actual cost recorded after); returns the task."""
+    tracker.check(projected)
+    payload = client.post(endpoint, [task])
+    tracker.record(operation, 1, response_cost(payload, projected))
+    return (payload.get("tasks") or [{}])[0]
 
 
 # --- Daily spend cap ---

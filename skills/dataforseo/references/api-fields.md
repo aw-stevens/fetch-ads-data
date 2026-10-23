@@ -11,6 +11,12 @@ Docs: https://docs.dataforseo.com/v3/
 | `query_serp.py --mode standard/priority` | `POST /v3/serp/google/organic/task_post` | Yes — per task per 10 results |
 | | `GET /v3/serp/google/organic/task_get/advanced/{id}` | No |
 | `query_serp.py --mode live` | `POST /v3/serp/google/organic/live/advanced` | Yes — per task per 10 results |
+| `query_ads_search.py --mode standard/priority` | `POST /v3/serp/google/ads_search/task_post` | Yes — per task per 40 ads |
+| | `GET /v3/serp/google/ads_search/task_get/advanced/{id}` | No |
+| `query_ads_search.py --mode live` | `POST /v3/serp/google/ads_search/live/advanced` | Yes — per task per 40 ads |
+| `query_ads_advertisers.py --mode standard/priority` | `POST /v3/serp/google/ads_advertisers/task_post` | Yes — per task |
+| | `GET /v3/serp/google/ads_advertisers/task_get/advanced/{id}` | No |
+| `query_ads_advertisers.py --mode live` | `POST /v3/serp/google/ads_advertisers/live/advanced` | Yes — per task |
 | `verify.py` | `GET /v3/appendix/user_data` | No |
 
 Rate limits: Google Ads Live endpoints (keyword volume) allow **12 requests/minute** — the
@@ -77,8 +83,75 @@ suggests narrowing location to a city, though that did not reliably surface ads 
 
 Background: https://dataforseo.com/help-center/getting-more-consistent-ad-results-in-google-serp-api
 
-For ads by advertiser (rather than by query), DataForSEO's separate Google Ads Search API
-(Ads Transparency Center data) is the better source; it is not wrapped by this plugin.
+For ads by advertiser (rather than by query), use `query_ads_search.py` (Ads Transparency
+Center data, below).
+
+## Ads search (Ads Transparency) — request fields
+
+| Script flag | API field | Notes |
+|---|---|---|
+| positional domain | `target` | One task per domain |
+| positional `AR…` IDs | `advertiser_ids` | Up to 25 per task; the script groups them |
+| `--location-code` / `--all-locations` | `location_code` | Omitted = ads shown in any location. Codes: `GET /v3/serp/google/ads_search/locations` (free) |
+| `--platform` | `platform` | `all`, `google_search`, `youtube`, `google_play`, `google_maps`, `google_shopping` (sent only when not `all`) |
+| `--ad-format` | `format` | `all`, `text`, `image`, `video` (sent only when not `all`) |
+| `--date-from` / `--date-to` | `date_from` / `date_to` | `YYYY-MM-DD`, both or neither, 2018-05-31 to today |
+| `--depth` | `depth` | Default 40; max 700 (task_post) / 120 (live). Billed per 40 |
+| `--mode priority` | `priority: 2` | High priority, about 2x price |
+
+Results are desktop only. Up to 100 tasks per `task_post`; Live takes one task per call.
+
+## Ads search — output fields
+
+Per target: `target` (domain, or `ids:AR…,AR…`), `advertiser_ids_requested`,
+`location_code` (null = all locations), `platform`, `ad_format`, `date_from`, `date_to`,
+`depth`, `fetched_at`, `ads_returned`, `may_have_more` (result filled `depth`), plus:
+
+**advertisers**: `advertiser_id`, `name`, `verified`, `ads` (count in this result)
+
+**ads**
+
+| Field | API field | Description |
+|---|---|---|
+| `rank` | `rank_group` | Order in the Transparency Center listing |
+| `advertiser_id` | `advertiser_id` | Advertiser account (`AR…`) |
+| `advertiser_name` | `title` | Advertiser's legal/display name |
+| `verified` | `verified` | Advertiser verified by Google |
+| `creative_id` | `creative_id` | Ad ID (`CR…`) |
+| `format` | `format` | `text`, `image`, or `video` |
+| `first_shown` / `last_shown` | same | `YYYY-MM-DD hh:mm:ss +00:00` (UTC) |
+| `transparency_url` | `url` | The ad on adstransparency.google.com |
+| `preview_url` | `preview_url` | Ad preview link (often null for text ads) |
+| `preview_image_url`, `preview_image_width`, `preview_image_height` | `preview_image` | Rendered preview image |
+
+Ads are listed most recently shown first. A `target` domain matches ads that point to that
+domain, so other advertisers (resellers, agencies, affiliates) can appear in `advertisers`
+next to the domain owner. No ad copy, impressions, spend, or targeting is returned. A task with no ads returns
+`40102 No Search Results`, which the script reports as zero ads, not an error.
+
+## Advertiser lookup — fields
+
+Request: `keyword` (≤700 characters), optional `location_code` (omitted with
+`--all-locations`), `priority`. Billed per task, regardless of how many advertisers match.
+
+Matching is loose: advertisers and domains that only contain the keyword are included.
+
+Per keyword: `keyword`, `location_code`, `fetched_at`, `domains` (from `ads_domain` items),
+and `advertisers`:
+
+| Field | Description |
+|---|---|
+| `rank` | Rank within its type (`rank_group`) |
+| `kind` | `multi_account` (API `ads_multi_account_advertiser`: one brand, several accounts) or `advertiser` (`ads_advertiser`) |
+| `name` | Advertiser name (`title`) |
+| `location` | Country code |
+| `verified` | Single account: as returned. Multi-account: true if every account is verified, false if none, null if mixed (table: `mixed`) |
+| `approx_ads_count` | Approximate ads across all Google platforms |
+| `advertiser_ids` | IDs to pass to `query_ads_search.py` |
+| `accounts` | Per account: `advertiser_id`, `location`, `verified`, `approx_ads_count` |
+
+CSV output is one row per account (`keyword, rank, kind, name, advertiser_id, location,
+verified, approx_ads_count`) plus one `kind=domain` row per domain.
 
 ## Common location codes
 

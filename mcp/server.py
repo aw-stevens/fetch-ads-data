@@ -1,5 +1,5 @@
 """
-Ad Analytics MCP Server — single server exposing all 19 tools.
+Ad Analytics MCP Server — single server exposing all 21 tools.
 
 Google Ads: google_ads_query, google_ads_list_accounts
 Google Analytics: google_analytics_query, google_analytics_realtime
@@ -9,7 +9,8 @@ Google Search Console: google_search_console_query, google_search_console_list_s
 LinkedIn Ads: linkedin_ads_query, linkedin_ads_list_accounts
 G2 Digital Markets: g2_digital_markets_query, g2_digital_markets_verify
 Microsoft Advertising: microsoft_ads_query, microsoft_ads_list_accounts
-DataForSEO: dataforseo_keyword_volume, dataforseo_serp, dataforseo_verify
+DataForSEO: dataforseo_keyword_volume, dataforseo_serp, dataforseo_ads_search,
+    dataforseo_ads_advertisers, dataforseo_verify
 """
 
 import json
@@ -582,7 +583,7 @@ def g2_digital_markets_verify() -> str:
     ])
 
 
-# --- DataForSEO (keyword volume + SERP) ---
+# --- DataForSEO (keyword volume, SERP, Ads Transparency) ---
 # Paid API: each call is checked against a local daily spend cap before it is sent.
 
 @mcp.tool(
@@ -678,6 +679,118 @@ def dataforseo_serp(
     if dry_run:
         cmd += ["--dry-run"]
     return _run(cmd + ["--", *queries])
+
+
+@mcp.tool(
+    name="dataforseo_ads_search",
+    annotations={"readOnlyHint": True, "openWorldHint": True},
+)
+def dataforseo_ads_search(
+    targets: list[str] = [],
+    mode: str = "standard",
+    location_code: int = 0,
+    all_locations: bool = False,
+    platform: str = "all",
+    ad_format: str = "all",
+    date_from: str = "",
+    date_to: str = "",
+    depth: int = 40,
+    task_ids: list[str] = [],
+    dry_run: bool = False,
+    format: str = "table",
+) -> str:
+    """List the ads an advertiser runs on Google, from the Google Ads Transparency Center via
+    DataForSEO: format (text/image/video), first and last shown dates, advertiser account,
+    a Transparency Center link, and a preview image/URL per ad. No ad copy is returned —
+    the link or preview shows it.
+
+    Use for "what ads does example.com run". Unlike dataforseo_serp, this is per advertiser,
+    not a sample of one search page. If a domain returns nothing, find the advertiser's IDs
+    with dataforseo_ads_advertisers and pass those instead.
+
+    Costs money: billed per domain (or per group of up to 25 IDs) per 40 ads. Refused if it
+    would exceed the daily spend cap.
+
+    Args:
+        targets: Advertiser domains (e.g. ["example.com"]) and/or advertiser IDs ("AR" + digits).
+            Each domain is one task; all IDs are grouped into one task per 25.
+        mode: 'standard' (default — cheapest, queued, can take several minutes),
+            'priority' (~2x price, usually under a minute), or 'live' (~3x price, seconds).
+        location_code: Where the ads were shown. 0 (default) uses the config default or
+            2840 (United States).
+        all_locations: When true, sends no location (ads shown anywhere).
+        platform: 'all' (default), 'google_search', 'youtube', 'google_play', 'google_maps',
+            or 'google_shopping'.
+        ad_format: 'all' (default), 'text', 'image', or 'video'.
+        date_from: Only ads shown on/after this date, YYYY-MM-DD (earliest 2018-05-31).
+            Requires date_to.
+        date_to: Only ads shown on/before this date, YYYY-MM-DD. Requires date_from.
+        depth: Max ads per task (default 40; up to 700 queued, 120 live). Each extra 40 is billed again.
+        task_ids: Task IDs from an earlier call that timed out while queued. When set,
+            collects those results instead of posting new tasks (no charge).
+        dry_run: When true, returns the task bodies and projected cost without calling the API.
+        format: Output format — 'table' (default), 'csv', or 'json'.
+    """
+    cmd = [VENV_PYTHON, str(SCRIPTS / "dataforseo" / "query_ads_search.py"), "--format", format]
+    if task_ids:
+        return _run(cmd + ["--task-ids", *task_ids])
+    cmd += ["--mode", mode, "--platform", platform, "--ad-format", ad_format, "--depth", str(depth)]
+    if all_locations:
+        cmd += ["--all-locations"]
+    elif location_code:
+        cmd += ["--location-code", str(location_code)]
+    if date_from:
+        cmd += ["--date-from", date_from]
+    if date_to:
+        cmd += ["--date-to", date_to]
+    if dry_run:
+        cmd += ["--dry-run"]
+    return _run(cmd + ["--", *targets])
+
+
+@mcp.tool(
+    name="dataforseo_ads_advertisers",
+    annotations={"readOnlyHint": True, "openWorldHint": True},
+)
+def dataforseo_ads_advertisers(
+    keywords: list[str] = [],
+    mode: str = "standard",
+    location_code: int = 0,
+    all_locations: bool = False,
+    task_ids: list[str] = [],
+    dry_run: bool = False,
+    format: str = "table",
+) -> str:
+    """Find Google Ads advertiser accounts by name or keyword, from the Google Ads
+    Transparency Center via DataForSEO. Returns advertiser IDs (brands with several
+    accounts are grouped), location, verification, approximate ad count, and matching
+    advertiser domains — inputs for dataforseo_ads_search.
+
+    Costs money: billed per keyword. Refused if it would exceed the daily spend cap.
+
+    Args:
+        keywords: Advertiser names or keywords (e.g. ["example brand"]). Up to 100 per call.
+        mode: 'standard' (default — cheapest, queued, can take several minutes),
+            'priority' (~2x price, usually under a minute), or 'live' (~3x price, seconds).
+        location_code: Advertiser location. 0 (default) uses the config default or
+            2840 (United States).
+        all_locations: When true, sends no location (advertisers anywhere).
+        task_ids: Task IDs from an earlier call that timed out while queued. When set,
+            collects those results instead of posting new tasks (no charge).
+        dry_run: When true, returns the task bodies and projected cost without calling the API.
+        format: Output format — 'table' (default), 'csv', or 'json'.
+    """
+    cmd = [VENV_PYTHON, str(SCRIPTS / "dataforseo" / "query_ads_advertisers.py"), "--format", format]
+    if task_ids:
+        return _run(cmd + ["--task-ids", *task_ids])
+    cmd += ["--mode", mode]
+    if all_locations:
+        cmd += ["--all-locations"]
+    elif location_code:
+        cmd += ["--location-code", str(location_code)]
+    if dry_run:
+        cmd += ["--dry-run"]
+    return _run(cmd + ["--", *keywords])
 
 
 @mcp.tool(
