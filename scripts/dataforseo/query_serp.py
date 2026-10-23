@@ -191,19 +191,8 @@ def _parse_task(task: dict) -> dict:
 
 def fetch_queued(api: dfs.Client, tracker: dfs.SpendTracker, tasks: list[dict], mode: str,
                  depth: int, interval: float, timeout: float, sleep=time.sleep):
-    projected = projected_cost(len(tasks), depth, mode)
-    tracker.check(projected)
-    payload = api.post(TASK_POST, tasks)
-    tracker.record(f"serp_{mode}", len(tasks), dfs.response_cost(payload, projected))
-
-    posted = payload.get("tasks") or []
-    ids, errors = [], {}
-    for i, task in enumerate(tasks):
-        t = posted[i] if i < len(posted) else {}
-        if t.get("status_code") == dfs.TASK_CREATED and t.get("id"):
-            ids.append(t["id"])
-        else:
-            errors[task["keyword"]] = f"{t.get('status_message', 'task not created')} (status_code={t.get('status_code')})"
+    ids, errors = dfs.post_queued(api, tracker, TASK_POST, tasks, [t["keyword"] for t in tasks],
+                                  projected_cost(len(tasks), depth, mode), f"serp_{mode}")
     return collect(api, ids, interval, timeout, errors, sleep=sleep)
 
 
@@ -221,10 +210,7 @@ def fetch_live(api: dfs.Client, tracker: dfs.SpendTracker, tasks: list[dict], de
     per_query = projected_cost(1, depth, "live")
     rows, errors = [], {}
     for task in tasks:
-        tracker.check(per_query)
-        payload = api.post(LIVE, [task])
-        tracker.record("serp_live", 1, dfs.response_cost(payload, per_query))
-        t = (payload.get("tasks") or [{}])[0]
+        t = dfs.post_live(api, tracker, LIVE, task, per_query, "serp_live")
         try:
             dfs.task_ok(t)
         except dfs.DataForSeoError as exc:
