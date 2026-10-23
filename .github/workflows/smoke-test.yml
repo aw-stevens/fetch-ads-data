@@ -93,6 +93,8 @@ jobs:
             scripts/microsoft_ads/list_accounts.py
             scripts/dataforseo/query_volume.py
             scripts/dataforseo/query_serp.py
+            scripts/dataforseo/query_ads_search.py
+            scripts/dataforseo/query_ads_advertisers.py
             scripts/dataforseo/verify.py
           )
           for script in "${scripts[@]}"; do
