@@ -52,7 +52,8 @@ jobs:
             "google_analytics": {"credentials": "", "default_properties": [], "properties": {}},
             "linkedin_ads": {"credentials": "", "default_accounts": [], "accounts": {}},
             "google_search_console": {"credentials": "", "default_site": "", "sites": {}},
-            "g2_digital_markets": {"credentials": "", "base_url": "", "auth_in": "header", "auth_param": "api_key"}
+            "g2_digital_markets": {"credentials": "", "base_url": "", "auth_in": "header", "auth_param": "api_key"},
+            "dataforseo": {"credentials": "", "daily_cap_usd": 1.0}
           }' > ~/.fetch-ads-data/config.json
 
       - name: MCP server loads
@@ -90,6 +91,9 @@ jobs:
             scripts/g2_digital_markets/query_g2.py
             scripts/microsoft_ads/query_ms_ads.py
             scripts/microsoft_ads/list_accounts.py
+            scripts/dataforseo/query_volume.py
+            scripts/dataforseo/query_serp.py
+            scripts/dataforseo/verify.py
           )
           for script in "${scripts[@]}"; do
             echo "Testing $script --help"
@@ -101,6 +105,7 @@ jobs:
         run: |
           python scripts/g2_digital_markets/test_query_g2.py
           python scripts/microsoft_ads/test_rest_client.py
+          python scripts/dataforseo/test_dataforseo.py
           echo "All unit tests passed"
 
       - name: Scripts without argparse compile cleanly

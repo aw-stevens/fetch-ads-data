@@ -2,14 +2,14 @@
 
 ## Overview
 
-Claude Code plugin providing Google Ads, Google Analytics (GA4), Google Tags, Google Tag Manager, Google Search Console, LinkedIn Ads, G2 Digital Markets, and Microsoft Advertising (Bing Ads) querying via 8 skills and 16 MCP tools. Installed as a marketplace from `aw-stevens/fetch-ads-data`.
+Claude Code plugin providing Google Ads, Google Analytics (GA4), Google Tags, Google Tag Manager, Google Search Console, LinkedIn Ads, G2 Digital Markets, Microsoft Advertising (Bing Ads), and DataForSEO (keyword volume + SERP) querying via 9 skills and 19 MCP tools. Installed as a marketplace from `aw-stevens/fetch-ads-data`.
 
 ## Architecture
 
 ```
 .claude-plugin/marketplace.json  — Marketplace + plugin manifest
 .mcp.json                        — MCP server config (uses ${CLAUDE_PLUGIN_ROOT})
-skills/                          — 8 skills (SKILL.md + references/)
+skills/                          — 9 skills (SKILL.md + references/)
 scripts/                         — Python scripts called by MCP tools
   config.py                      — Shared config loader (all scripts import this)
   google_ads/                    — query_ads.py, list_accounts.py
@@ -20,7 +20,8 @@ scripts/                         — Python scripts called by MCP tools
   linkedin_ads/                  — query_li_ads.py, list_li_accounts.py, auth.py, get_token.py
   g2_digital_markets/            — query_g2.py (Click Report; API-key auth)
   microsoft_ads/                 — query_ms_ads.py, list_accounts.py, auth.py, get_token.py
-mcp/server.py                    — Single FastMCP server, all 16 tools (subprocess pattern)
+  dataforseo/                    — query_volume.py, query_serp.py, verify.py, client.py (auth, polling, spend cap)
+mcp/server.py                    — Single FastMCP server, all 19 tools (subprocess pattern)
 hooks/hooks.json                 — SessionStart hook to ensure venv exists
 commands/                        — /fetch-ads-data-setup slash command
 templates/                       — Config and credential templates
@@ -28,7 +29,7 @@ templates/                       — Config and credential templates
 
 ## Key Design Decisions
 
-- **Single MCP server** — All 16 tools in one FastMCP process. Tools call scripts via subprocess.
+- **Single MCP server** — All 19 tools in one FastMCP process. Tools call scripts via subprocess.
 - **Config-driven** — All account IDs, credential paths, and defaults live in `~/.fetch-ads-data/config.json`, not hardcoded.
 - **Stable venv** — Python venv at `~/.fetch-ads-data/venv/` persists across plugin updates. Scripts reference it by absolute path.
 - **`${CLAUDE_PLUGIN_ROOT}`** — Used in SKILL.md and .mcp.json to resolve paths within the plugin cache (changes on update). Never used for the venv or config paths.
@@ -46,6 +47,8 @@ templates/                       — Config and credential templates
 | GTM creds | `~/.fetch-ads-data/google-tagmanager.json` |
 | G2DM creds | `~/.fetch-ads-data/g2-digital-markets.json` |
 | Microsoft Ads creds | `~/.fetch-ads-data/microsoft-ads.json` |
+| DataForSEO creds | `DATAFORSEO_LOGIN` / `DATAFORSEO_PASSWORD` env vars, or `~/.fetch-ads-data/dataforseo.json` |
+| DataForSEO spend tally | `~/.fetch-ads-data/dataforseo-costs/YYYY-MM-DD.json` |
 
 ## Development
 
